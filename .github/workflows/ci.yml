@@ -45,3 +45,17 @@ jobs:
       - name: Publish build info to JFrog Artifactory
         run: |
           jf rt build-publish "$build_name" "$build_number"  --project poc
+
+  create-app-version:
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: "[Setup] AppTrust variables"
+        run: |
+          APP_VERSION=$(node -p "require('./package.json').version")
+          APPLICATION_KEY="nba-app"
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
+          echo "APPLICATION_KEY=$APPLICATION_KEY" >> $GITHUB_ENV
+          echo "✅ AppTrust variables set:"
+          echo "   📦 Application: $APPLICATION_KEY"
+          echo "   🏷️ Version: $APP_VERSION"

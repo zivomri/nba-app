@@ -50,6 +50,8 @@ jobs:
     needs: build-and-publish
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: "[Setup] AppTrust variables"
         run: |
           sudo apt-get update && sudo apt-get install -y jq

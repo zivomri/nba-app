@@ -36,9 +36,8 @@ jobs:
           JF_URL: ${{ secrets.JF_URL }}
           JF_USER: ${{ secrets.JF_USER }}
           JF_PASSWORD: ${{ secrets.JF_PASSWORD }}
-          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
         run: |
-          jfrog config add jf-ci --artifactory-url "$JF_URL" --user "$JF_USER" --password "$JF_PASSWORD" --access-token "$JF_ACCESS_TOKEN" --interactive=false
+          jfrog config add jf-ci --artifactory-url "$JF_URL" --user "$JF_USER" --password "$JF_PASSWORD" --interactive=false
 
       - name: Publish npm package to JFrog Artifactory
         run: |

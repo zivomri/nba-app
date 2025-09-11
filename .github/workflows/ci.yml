@@ -22,9 +22,6 @@ jobs:
           node-version: "20"
       - name: Install JFrog CLI
         uses: jfrog/setup-jfrog-cli@v4
-      - name: Install dependencies with JFrog CLI
-        run: |
-          jf npm install --build-name=$build_name --build-number=$build_number
       - name: Configure JFrog CLI
         env:
           JF_URL: ${{ secrets.JF_URL }}
@@ -35,6 +32,9 @@ jobs:
       - name: Configure NPM
         run: |
           jf npm-config --repo-deploy poc-npm --repo-resolve poc-npm --project poc
+      - name: Install dependencies with JFrog CLI
+        run: |
+          jf npm install --build-name=$build_name --build-number=$build_number
       - name: Publish npm package to JFrog Artifactory
         run: |
           jf npm publish --build-name=$build_name --build-number=$build_number

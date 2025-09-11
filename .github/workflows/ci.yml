@@ -32,17 +32,17 @@ jobs:
           JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Configure NPM
         run: |
-          jf npm-config --repo-deploy poc-npm --repo-resolve poc-npm --project poc
+          jf npm-config --repo-deploy poc-npm --repo-resolve poc-npm
       - name: Install dependencies with JFrog CLI
         run: |
-          jf npm install --build-name=$build_name --build-number=$build_number
+          jf npm install --build-name=$build_name --build-number=$build_number  --project poc
       - name: Publish npm package to JFrog Artifactory
         run: |
-          jf npm publish --build-name=$build_name --build-number=$build_number
+          jf npm publish --build-name=$build_name --build-number=$build_number  --project poc
       - name: Collect build environment info
         run: |
-          jf rt build-collect-env --build-name=$build_name --build-number=$build_number
+          jf rt build-collect-env --build-name=$build_name --build-number=$build_number  --project poc
 
       - name: Publish build info to JFrog Artifactory
         run: |
-          jf rt build-publish $build_name $build_number
+          jf rt build-publish $build_name $build_number  --project poc

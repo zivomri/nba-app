@@ -20,9 +20,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Build npm package
-        run: npm run build
-
       - name: Install JFrog CLI
         uses: jfrog/setup-jfrog-cli@v4
       - name: Install dependencies with JFrog CLI
@@ -38,12 +35,11 @@ jobs:
 
       - name: Publish npm package to JFrog Artifactory
         run: |
-          jfrog rt npmpublish --build-name=$build_name --build-number=$build_number
-
+          jf npm publish --build-name=$build_name --build-number=$build_number
       - name: Collect build environment info
         run: |
-          jfrog rt build-collect-env --build-name=$build_name --build-number=$build_number
+          jf rt build-collect-env --build-name=$build_name --build-number=$build_number
 
       - name: Publish build info to JFrog Artifactory
         run: |
-          jfrog rt build-publish $build_name $build_number
+          jf rt build-publish $build_name $build_number

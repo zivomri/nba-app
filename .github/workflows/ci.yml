@@ -41,8 +41,7 @@ jobs:
           jf npm publish --build-name=$build_name --build-number=$build_number  --project poc
       - name: Collect build environment info
         run: |
-          jf rt build-collect-env --build-name=$build_name --build-number=$build_number  --project poc
-
+          jf rt build-collect-env "$build_name" "$build_number" --project poc
       - name: Publish build info to JFrog Artifactory
         run: |
-          jf rt build-publish $build_name $build_number  --project poc
+          jf rt build-publish "$build_name" "$build_number"  --project poc

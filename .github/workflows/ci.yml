@@ -20,15 +20,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Install JFrog CLI
+      - name: Set up JFrog CLI
         uses: jfrog/setup-jfrog-cli@v4
-      - name: Configure JFrog CLI
+        with:
+          version: 'latest'
         env:
           JF_URL: ${{ secrets.JF_URL }}
+          # Basic authentication credentials
           JF_USER: ${{ secrets.JF_USER }}
           JF_PASSWORD: ${{ secrets.JF_PASSWORD }}
-        run: |
-          jfrog config add jf-ci --artifactory-url "$JF_URL" --user "$JF_USER" --password "$JF_PASSWORD" --interactive=false
+          JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Configure NPM
         run: |
           jf npm-config --repo-deploy poc-npm --repo-resolve poc-npm --project poc

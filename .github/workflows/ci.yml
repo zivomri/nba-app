@@ -20,17 +20,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-
-      - name: Install dependencies with JFrog CLI
-        run: |
-          jfrog rt npm-install --build-name=$build_name --build-number=$build_number
-
       - name: Build npm package
         run: npm run build
 
       - name: Install JFrog CLI
         uses: jfrog/setup-jfrog-cli@v4
-
+      - name: Install dependencies with JFrog CLI
+        run: |
+          jf npm install --build-name=$build_name --build-number=$build_number
       - name: Configure JFrog CLI
         env:
           JF_URL: ${{ secrets.JF_URL }}

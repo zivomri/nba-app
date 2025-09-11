@@ -52,7 +52,8 @@ jobs:
     steps:
       - name: "[Setup] AppTrust variables"
         run: |
-          APP_VERSION=$(node -p "require('./package.json').version")
+          sudo apt-get update && sudo apt-get install -y jq
+          APP_VERSION=$(jq -r '.version' package.json)
           APPLICATION_KEY="nba-app"
           echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
           echo "APPLICATION_KEY=$APPLICATION_KEY" >> $GITHUB_ENV

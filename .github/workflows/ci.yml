@@ -32,7 +32,9 @@ jobs:
           JF_PASSWORD: ${{ secrets.JF_PASSWORD }}
         run: |
           jfrog config add jf-ci --artifactory-url "$JF_URL" --user "$JF_USER" --password "$JF_PASSWORD" --interactive=false
-
+      - name: Configure NPM
+        run: |
+          jf npm-config --repo-deploy poc-npm --repo-resolve poc-npm --project poc
       - name: Publish npm package to JFrog Artifactory
         run: |
           jf npm publish --build-name=$build_name --build-number=$build_number

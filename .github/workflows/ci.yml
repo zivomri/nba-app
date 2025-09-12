@@ -49,14 +49,18 @@ jobs:
   create-app-version:
     needs: build-and-publish
     runs-on: ubuntu-latest
+    env:
+      BUILD_NAME: nba-app-ci
+      BUILD_NUMBER: ${{ github.run_number }}
+      JF_URL: ${{ secrets.JF_URL }}
+      JF_USER: ${{ secrets.JF_USER }}
+      JF_PASSWORD: ${{ secrets.JF_PASSWORD }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: "[Setup] AppTrust variables"
         run: |
           sudo apt-get update && sudo apt-get install -y jq
-          pwd
-          ls
           APP_VERSION=$(jq -r '.version' package.json)
           APPLICATION_KEY="nba-app"
           echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
@@ -64,3 +68,16 @@ jobs:
           echo "✅ AppTrust variables set:"
           echo "   📦 Application: $APPLICATION_KEY"
           echo "   🏷️ Version: $APP_VERSION"
+      - name: "[Create] Create AppTrust Application Version"
+        id: create_app_version
+        run: | 
+          envsubst < .jfrog/payloads-templates/app-version-payload-template.json > .jfrog/payloads-templates/app-version-payload-template.json.tmp
+          cat .jfrog/payloads-templates/app-version-payload-template.json.tmp
+          HTTP_STATUS=$(curl -sS -L -o "$RESP_BODY" -w "%{http_code}" -X POST \
+            "$JFROG_URL/apptrust/api/v1/applications/$APPLICATION_KEY/versions?async=false" \
+            -u "$JF_USER:$JF_PASSWORD" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            -H "X-JFrog-Project: poc" \
+            -d @.jfrog/payloads-templates/app-version-payload-template.json.tmp)
+

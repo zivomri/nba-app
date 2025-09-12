@@ -1,0 +1,14 @@
+{
+    "version": "$APP_VERSION",
+    "tag": "alpha",
+    "sources": {
+        "builds": [
+        {
+            "name": "$BUILD_NAME",
+            "number": "$BUILD_NUMBER",
+            "repository_key": "poc-build-info",
+            "include_dependencies": false
+        }
+        ]
+    }
+}

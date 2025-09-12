@@ -1,0 +1,14 @@
+{
+    "version": "",
+    "tag": "alpha",
+    "sources": {
+        "builds": [
+        {
+            "name": "",
+            "number": "33",
+            "repository_key": "poc-build-info",
+            "include_dependencies": false
+        }
+        ]
+    }
+}

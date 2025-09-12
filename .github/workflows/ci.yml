@@ -74,7 +74,7 @@ jobs:
           cat .jfrog/payloads-templates/app-version-payload-template.json.tmp
           RESP_BODY="response_body.json"
           HTTP_STATUS=$(curl -sS -L -o "$RESP_BODY" -w "%{http_code}" -X POST \
-            "$JFROG_URL/apptrust/api/v1/applications/$APPLICATION_KEY/versions?async=false" \
+            "$JF_URL/apptrust/api/v1/applications/$APPLICATION_KEY/versions?async=false" \
             -u "$JF_USER:$JF_PASSWORD" \
             -H "Accept: application/json" \
             -H "Content-Type: application/json" \

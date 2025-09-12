@@ -55,6 +55,7 @@ jobs:
       JF_URL: ${{ secrets.JF_URL }}
       JF_USER: ${{ secrets.JF_USER }}
       JF_PASSWORD: ${{ secrets.JF_PASSWORD }}
+      JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -75,7 +76,7 @@ jobs:
           RESP_BODY="response_body.json"
           HTTP_STATUS=$(curl -sS -L -o "$RESP_BODY" -w "%{http_code}" -X POST \
             "$JF_URL/apptrust/api/v1/applications/$APPLICATION_KEY/versions?async=false" \
-            -u "$JF_USER:$JF_PASSWORD" \
+            -H "Authorization: Bearer $JF_ACCESS_TOKEN" \
             -H "Accept: application/json" \
             -H "Content-Type: application/json" \
             -H "X-JFrog-Project: poc" \

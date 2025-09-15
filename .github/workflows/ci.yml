@@ -84,7 +84,6 @@ jobs:
             --package-repo-name "$DOCKER_REPO" \
             --package-version "$IMAGE_TAG" \
             --project poc \
-            --package-type npm \
             --package-name "$PACKAGE_NAME" \
             --package-version "$PACKAGE_VERSION" \
             --package-repo-name poc-npm \

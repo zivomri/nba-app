@@ -81,7 +81,6 @@ jobs:
             --predicate .jfrog/evidence/sonarqube-coverage.json \
             --markdown .jfrog/evidence/sonarqube-coverage.md \
             --predicate-type "https://pytest.org/evidence/results/v1" \
-            --package-name "$SERVICE_NAME" \
             --package-repo-name "$DOCKER_REPO" \
             --package-version "$IMAGE_TAG" \
             --project poc \

@@ -80,11 +80,10 @@ jobs:
           jf evd create-evidence \
             --predicate .jfrog/evidence/sonarqube-coverage.json \
             --markdown .jfrog/evidence/sonarqube-coverage.md \
-                --predicate-type "https://pytest.org/evidence/results/v1" \
-                            --package-name "$SERVICE_NAME" \
-                --package-repo-name "$DOCKER_REPO" \
-                --package-version "$IMAGE_TAG" \
-
+            --predicate-type "https://pytest.org/evidence/results/v1" \
+            --package-name "$SERVICE_NAME" \
+            --package-repo-name "$DOCKER_REPO" \
+            --package-version "$IMAGE_TAG" \
             --project poc \
             --package-type npm \
             --package-name "$PACKAGE_NAME" \

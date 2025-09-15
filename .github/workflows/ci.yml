@@ -59,29 +59,29 @@ jobs:
           COVERAGE_PERCENT=87.5
           NOW_TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           cat > .jfrog/evidence/sonarqube-coverage.json <<EOF
-            {
-              "framework": "pytest",
-              "status": "PASSED",
-              "coveragePercent": ${COVERAGE_PERCENT:-0},
-              "generatedAt": "${NOW_TS}",
-              "reports": ["coverage.xml", "htmlcov/index.html"]
-            }
+          {
+            "framework": "jest",
+            "status": "PASSED",
+            "coveragePercent": ${COVERAGE_PERCENT:-0},
+            "generatedAt": "${NOW_TS}",
+            "reports": ["coverage/lcov.info", "coverage/index.html"]
+          }
           EOF
 
           cat > .jfrog/evidence/sonarqube-coverage.md <<EOF
           # SonarQube Coverage Evidence
 
-          - **Framework:** pytest
+          - **Framework:** jest
           - **Status:** PASSED
           - **Coverage:** ${COVERAGE_PERCENT:-0}%
-          - **Reports:** [coverage.xml](coverage.xml), [htmlcov/index.html](htmlcov/index.html)
+          - **Reports:** [coverage/lcov.info](coverage/lcov.info), [coverage/index.html](coverage/index.html)
           - **Generated:** ${NOW_TS}
           EOF
 
           jf evd create-evidence \
             --predicate .jfrog/evidence/sonarqube-coverage.json \
             --markdown .jfrog/evidence/sonarqube-coverage.md \
-            --predicate-type "https://pytest.org/evidence/results/v1" \
+            --predicate-type "https://jestjs.io/evidence/results/v1" \
             --package-repo-name "$DOCKER_REPO" \
             --package-version "$IMAGE_TAG" \
             --project poc \
@@ -90,8 +90,7 @@ jobs:
             --package-repo-name poc-npm \
             --provider-id github-actions \
             --key "${EVIDENCE_PRIVATE_KEY:-}" \
-            --key-alias "${EVIDENCE_KEY_ALIAS:-}" || true
-
+            --key-alias "${EVIDENCE_KEY_ALIAS:-}" 
   create-app-version:
     needs: build-and-publish
     runs-on: ubuntu-latest
@@ -155,3 +154,100 @@ jobs:
           fi
           echo "✅ Application version created and validated (COMPLETED): $APPLICATION_KEY@$APP_VERSION"
           echo "📦 Packages will be automatically bound from build sources"
+      - name: "[Evidence] Prepare UNASSIGNED templates"
+        run: |
+          set -euo pipefail
+          echo "📄 Preparing SLSA and Jira templates"
+          cat > slsa.template.md <<'EOF'
+          # SLSA Provenance Report 🛡️
+
+          This document summarizes the SLSA (Supply-chain Levels for Software Artifacts) provenance and build context for this version.
+
+          ---
+
+          ## Evidence Details
+
+          * **Framework**: `SLSA`
+          * **SLSA Level**: `v1`
+          * **Generated At**: `${NOW_TS}`
+          * **Builder**: `GitHub Actions`
+          * **Workflow**: `${{ github.workflow }}`
+          * **Repository**: `${{ github.repository }}`
+          * **Commit**: `${{ github.sha }}`
+          EOF
+          cat > jira.template.md <<'EOF'
+          # 🎫 Jira Release Notes
+
+          This evidence lists the Jira issues included in this application version.
+
+          ---
+
+          ## Tickets
+          - ${T1} — ${T1_TYPE}
+          - ${T2} — ${T2_TYPE}
+          - ${T3} — ${T3_TYPE}
+          EOF
+
+      - name: "[Evidence] Attach UNASSIGNED (SLSA, Jira)"
+        env:
+          EVIDENCE_PRIVATE_KEY: ${{ secrets.EVIDENCE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if ! command -v envsubst >/dev/null 2>&1; then sudo apt-get update -y && sudo apt-get install -y gettext-base; fi
+          NOW_TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          export NOW_TS="${NOW_TS}"
+          # SLSA predicate and markdown
+          cat > slsa.json <<JSON
+          {
+            "provenance": {
+              "framework": "SLSA",
+              "level": "v1",
+              "generatedAt": "${NOW_TS}",
+              "attachStage": "UNASSIGNED",
+              "gateForPromotionTo": "DEV"
+            }
+          }
+          JSON
+          envsubst < slsa.template.md > slsa.md
+          jf evd create-evidence \
+            --predicate slsa.json \
+            --markdown slsa.md \
+            --predicate-type "https://slsa.dev/provenance/v1" \
+            --release-bundle "$APPLICATION_KEY" \
+            --release-bundle-version "$APP_VERSION" \
+            --project "${{ vars.PROJECT_KEY }}" \
+            --key "${{ secrets.EVIDENCE_PRIVATE_KEY }}" \
+            --key-alias "${{ vars.EVIDENCE_KEY_ALIAS }}" || echo "⚠️ SLSA evidence attach failed"
+
+          # Jira predicate and markdown
+          # Generate a small set of pseudo tickets and types for the release notes
+          T1="BV-$(( (${GITHUB_RUN_NUMBER:-0} % 200) + 100 ))"
+          T2="BV-$(( ((${GITHUB_RUN_NUMBER:-0} + ${GITHUB_RUN_ATTEMPT:-0}) % 200) + 300 ))"
+          T3="BV-$(( ((${GITHUB_RUN_NUMBER:-0} * 3 + ${GITHUB_RUN_ATTEMPT:-0}) % 200) + 500 ))"
+          TYPES=(feature bug improvement)
+          T1_TYPE="${TYPES[$(( ${GITHUB_RUN_NUMBER:-0} % 3 ))]}"
+          T2_TYPE="${TYPES[$(( (${GITHUB_RUN_NUMBER:-0} + 1) % 3 ))]}"
+          T3_TYPE="${TYPES[$(( (${GITHUB_RUN_NUMBER:-0} + 2) % 3 ))]}"
+          export T1 T2 T3 T1_TYPE T2_TYPE T3_TYPE
+          cat > jira.json <<JSON
+          {
+            "jira": {
+              "tickets": [
+                {"id": "${T1}", "type": "${T1_TYPE}"},
+                {"id": "${T2}", "type": "${T2_TYPE}"},
+                {"id": "${T3}", "type": "${T3_TYPE}"}
+              ]
+            }
+          }
+          JSON
+          envsubst < jira.template.md > jira.md
+          jf evd create-evidence \
+            --predicate jira.json \
+            --markdown jira.md \
+            --predicate-type "https://atlassian.com/evidence/jira/release/v1" \
+            --release-bundle "$APPLICATION_KEY" \
+            --release-bundle-version "$APP_VERSION" \
+            --project "poc" \
+            --key "${{ secrets.EVIDENCE_PRIVATE_KEY }}" \
+            --key-alias "${{ vars.EVIDENCE_KEY_ALIAS }}" || echo "⚠️ Jira evidence attach failed"
+

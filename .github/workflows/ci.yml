@@ -23,13 +23,6 @@ jobs:
           node-version: "20"
       - name: Set up JFrog CLI
         uses: EyalDelarea/setup-jfrog-cli@swampUpAppTrust
-        with:
-          version: latest
-          oidc-provider-name: github-omriz-poc
-          oidc-audience: ${{ secrets.JF_URL }}
-          disable-job-summary: true
-          disable-auto-build-publish: true
-          disable-auto-evidence-collection: false
         env:
           JF_URL: ${{ secrets.JF_URL }}
           # Basic authentication credentials
@@ -37,6 +30,13 @@ jobs:
           JF_PASSWORD: ${{ secrets.JF_PASSWORD }}
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
           JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          version: latest
+          oidc-provider-name: github-omriz-poc
+          disable-job-summary: true
+          disable-auto-build-publish: true
+          disable-auto-evidence-collection: false
+  
       - name: Configure NPM
         run: |
           jf npm-config --repo-deploy poc-npm --repo-resolve poc-npm

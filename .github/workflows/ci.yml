@@ -23,7 +23,12 @@ jobs:
       - name: Set up JFrog CLI
         uses: EyalDelarea/setup-jfrog-cli@swampUpAppTrust
         with:
-          version: 'latest'
+          version: latest
+          oidc-provider-name: github-omriz-poc
+          oidc-audience: ${{ secrets.JF_URL }}
+          disable-job-summary: true
+          disable-auto-build-publish: true
+          disable-auto-evidence-collection: false
         env:
           JF_URL: ${{ secrets.JF_URL }}
           # Basic authentication credentials

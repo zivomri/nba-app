@@ -1,6 +1,6 @@
 {
   "name": "nba-app",
-  "version": "0.1.4-wip5",
+  "version": "0.1.4-wip6",
   "private": true,
   "scripts": {
     "build": "next build",

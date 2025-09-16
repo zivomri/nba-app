@@ -226,7 +226,7 @@ jobs:
             --predicate-type "https://slsa.dev/provenance/v1" \
             --release-bundle "$APPLICATION_KEY" \
             --release-bundle-version "$APP_VERSION" \
-            --project "${{ vars.PROJECT_KEY }}" \
+            --project "poc" \
             --key "${{ secrets.EVIDENCE_PRIVATE_KEY }}" \
             --key-alias "${{ secrets.EVIDENCE_KEY_ALIAS }}" || echo "⚠️ SLSA evidence attach failed"
 

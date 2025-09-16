@@ -259,6 +259,6 @@ jobs:
             --release-bundle "$APPLICATION_KEY" \
             --release-bundle-version "$APP_VERSION" \
             --project "poc" \
-            --key "${{ secrets.EVIDENCE_PRIVATE_KEY }}" \
+            --key "${{ secrets.EVIDENCE_PRIVATE_KEY }}"  \
             --key-alias "${{ secrets.EVIDENCE_KEY_ALIAS }}" || echo "⚠️ Jira evidence attach failed"
 

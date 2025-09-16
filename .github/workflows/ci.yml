@@ -228,7 +228,7 @@ jobs:
             --release-bundle-version "$APP_VERSION" \
             --project "${{ vars.PROJECT_KEY }}" \
             --key "${{ secrets.EVIDENCE_PRIVATE_KEY }}" \
-            --key-alias "${{ vars.EVIDENCE_KEY_ALIAS }}" || echo "⚠️ SLSA evidence attach failed"
+            --key-alias "${{ secrets.EVIDENCE_KEY_ALIAS }}" || echo "⚠️ SLSA evidence attach failed"
 
           # Jira predicate and markdown
           # Generate a small set of pseudo tickets and types for the release notes
@@ -260,5 +260,5 @@ jobs:
             --release-bundle-version "$APP_VERSION" \
             --project "poc" \
             --key "${{ secrets.EVIDENCE_PRIVATE_KEY }}" \
-            --key-alias "${{ vars.EVIDENCE_KEY_ALIAS }}" || echo "⚠️ Jira evidence attach failed"
+            --key-alias "${{ secrets.EVIDENCE_KEY_ALIAS }}" || echo "⚠️ Jira evidence attach failed"
 

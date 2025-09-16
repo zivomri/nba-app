@@ -12,6 +12,7 @@ jobs:
     env:
       build_name: nba-app-ci
       build_number: ${{ github.run_number }}
+      ACTIONS_ID_TOKEN_REQUEST_URL: https://token.actions.githubusercontent.com
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -106,13 +107,20 @@ jobs:
       JF_USER: ${{ secrets.JF_USER }}
       JF_PASSWORD: ${{ secrets.JF_PASSWORD }}
       JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+      ACTIONS_ID_TOKEN_REQUEST_URL: https://token.actions.githubusercontent.com
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Set up JFrog CLI
         uses: EyalDelarea/setup-jfrog-cli@swampUpAppTrust
         with:
-          version: 'latest'
+          version: latest
+          oidc-provider-name: github-omriz-poc
+          oidc-audience: ${{ secrets.JF_URL }}
+          disable-job-summary: true
+          disable-auto-build-publish: true
+          disable-auto-evidence-collection: false
         env:
           JF_URL: ${{ secrets.JF_URL }}
           # Basic authentication credentials

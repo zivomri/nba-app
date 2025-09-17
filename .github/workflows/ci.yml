@@ -53,7 +53,7 @@ jobs:
       - name: Evidence Publish for NPM 🐸
         run: |
           echo '{ "actor": "${{ github.actor }}", "date": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'" }' > sign_npm.json
-          jf evd create \
+          jf evd create-evidence \
             --package-name ${{ env.NPM_PACKAGE_NAME }} \
             --package-version ${{ env.NPM_PACKAGE_BUILD_VERSION }} \
             --package-repo-name poc-npm  \
@@ -71,7 +71,7 @@ jobs:
       - name: Sign Build Evidence 🐸
         run: |
           echo '{ "actor": "${{ github.actor }}", "date": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'" }' > sign_build.json
-          jf evd create \
+          jf evd create-evidence \
             --predicate ./sign_build.json 
             --predicate-type https://jfrog.com/evidence/build-signature/v1 \
             --build-name $build_name \

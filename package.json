@@ -1,7 +1,8 @@
 {
   "name": "nba-app",
-  "version": "0.1.4-wip7",
+  "version": "0.1.4-wip8",
   "private": true,
+  "main": "index.js",
   "scripts": {
     "build": "next build",
     "dev": "next dev",

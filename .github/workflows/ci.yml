@@ -57,7 +57,7 @@ jobs:
             --package-name ${{ env.NPM_PACKAGE_NAME }} \
             --package-version ${{ env.NPM_PACKAGE_BUILD_VERSION }} \
             --package-repo-name poc-npm  \
-            --key "${{ secrets.JF_EVD_PRIVATE_KEY }}"  \
+            --key "${{ secrets.EVIDENCE_PRIVATE_KEY }}"  \
             --key-alias ${{ secrets.EVIDENCE_KEY_ALIAS }} \
             --predicate ./sign_npm.json \
             --predicate-type https://jfrog.com/evidence/signature/v1 \
@@ -77,7 +77,7 @@ jobs:
             --build-name $build_name \
             --build-number $build_number \
             --project poc} \
-            --key "${{ secrets.JF_EVD_PRIVATE_KEY }}"  
+            --key "${{ secrets.EVIDENCE_PRIVATE_KEY }}"  
             --key-alias ${{ secrets.EVIDENCE_KEY_ALIAS }} \
           echo '🔎 Build Evidence attached: `build-signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
       - name: Scan Build Info with JFrog Xray

@@ -56,6 +56,9 @@ jobs:
           jf rt build-publish "$build_name" "$build_number"  --project poc
       - name: Scan Build Info with JFrog Xray
         run: |
+          jf build-scan --format=json "$build_name" "$build_number" --project poc
+      - name: Scan Build Info with JFrog Xray
+        run: |
           mkdir -p .jfrog/evidence
           jf build-scan --fail=false --format=json "$build_name" "$build_number" --project poc | tee .jfrog/evidence/xray-scan-results.json
           XRAY_VIOLATIONS=$(jq '.[] | select(.type=="violation")' .jfrog/evidence/xray-scan-results.json | jq length)

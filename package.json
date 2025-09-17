@@ -3,7 +3,6 @@
   "version": "0.1.4-wip7",
   "main": "server.js",
   "private": true,
-  "main": "app/page.tsx",
   "scripts": {
     "build": "next build",
     "dev": "next dev",

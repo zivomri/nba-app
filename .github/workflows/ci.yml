@@ -57,7 +57,7 @@ jobs:
       - name: Scan Build Info with JFrog Xray
         run: |
           mkdir -p .jfrog/evidence
-          jf build-scan --fail=false --format=json $BUILD_NAME $BUILD_NUMBER --project poc | tee .jfrog/evidence/xray-scan-results.json
+          jf build-scan --fail=false --format=json "$build_name" "$build_number" --project poc | tee .jfrog/evidence/xray-scan-results.json
           XRAY_VIOLATIONS=$(jq '.[] | select(.type=="violation")' .jfrog/evidence/xray-scan-results.json | jq length)
           echo "XRAY_VIOLATIONS=$XRAY_VIOLATIONS" >> $GITHUB_ENV
 

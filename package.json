@@ -2,7 +2,7 @@
   "name": "nba-app",
   "version": "0.1.4-wip8",
   "private": true,
-  "main": "index.js",
+  "main": "app/page.tsx",
   "scripts": {
     "build": "next build",
     "dev": "next dev",

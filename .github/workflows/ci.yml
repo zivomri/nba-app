@@ -14,6 +14,8 @@ jobs:
     env:
       build_name: nba-app-ci
       build_number: ${{ github.run_number }}
+      EVIDENCE_PRIVATE_KEY: ${{ secrets.EVIDENCE_PRIVATE_KEY }}
+      EVIDENCE_KEY_ALIAS: ${{ secrets.EVIDENCE_KEY_ALIAS }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -57,10 +59,10 @@ jobs:
             --package-name ${{ env.NPM_PACKAGE_NAME }} \
             --package-version ${{ env.NPM_PACKAGE_BUILD_VERSION }} \
             --package-repo-name poc-npm  \
-            --key "${{ secrets.EVIDENCE_PRIVATE_KEY }}"  \
-            --key-alias ${{ secrets.EVIDENCE_KEY_ALIAS }} \
+            --key "${{ env.EVIDENCE_PRIVATE_KEY }}"  \
+            --key-alias ${{ env.EVIDENCE_KEY_ALIAS }} \
             --predicate ./sign_npm.json \
-            --predicate-type https://jfrog.com/evidence/signature/v1 \
+            --predicate-type https://jfrog.com/evidence/signature/v1 
           echo '🔎 NPM build Evidence attached: `signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
       - name: Collect build environment info
         run: |
@@ -76,9 +78,9 @@ jobs:
             --predicate-type https://jfrog.com/evidence/build-signature/v1 \
             --build-name $build_name \
             --build-number $build_number \
-            --project poc} \
-            --key "${{ secrets.EVIDENCE_PRIVATE_KEY }}"  
-            --key-alias ${{ secrets.EVIDENCE_KEY_ALIAS }} \
+            --project poc \
+            --key "${{ secrets.EVIDENCE_PRIVATE_KEY }}"  \
+            --key-alias ${{ secrets.EVIDENCE_KEY_ALIAS }} 
           echo '🔎 Build Evidence attached: `build-signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
       - name: Scan Build Info with JFrog Xray
         run: |

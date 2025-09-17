@@ -23,8 +23,8 @@ jobs:
           node-version: "20"
       - name: Capture build version
         run: |
-          echo NPM_PACKAGE_BUILD_VERSION==$(jq -r '.version' package.json) >> $GITHUB_ENV
-          echo NPM_PACKAGE_NAME==$(jq -r '.name' package.json) >> $GITHUB_ENV
+          echo NPM_PACKAGE_BUILD_VERSION=$(jq -r '.version' package.json) >> $GITHUB_ENV
+          echo NPM_PACKAGE_NAME=$(jq -r '.name' package.json) >> $GITHUB_ENV 
       - name: Set up JFrog CLI
         uses: EyalDelarea/setup-jfrog-cli@swampUpAppTrust
         env:

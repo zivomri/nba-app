@@ -59,7 +59,8 @@ jobs:
             --package-repo-name poc-npm  \
             --key "${{ secrets.JF_EVD_PRIVATE_KEY }}"  
             --key-alias ${{ secrets.EVIDENCE_KEY_ALIAS }} \
-            --predicate ./sign_npm.json --predicate-type https://jfrog.com/evidence/signature/v1 
+            --predicate ./sign_npm.json \
+            --predicate-type https://jfrog.com/evidence/signature/v1 \
           echo '🔎 NPM build Evidence attached: `signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
       - name: Collect build environment info
         run: |

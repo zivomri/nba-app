@@ -308,25 +308,25 @@ jobs:
             --key "${{ secrets.EVIDENCE_PRIVATE_KEY }}"  \
             --key-alias "${{ secrets.EVIDENCE_KEY_ALIAS }}" || echo "⚠️ Jira evidence attach failed"
 
-            - name: "[Promote] Promote Application Version to DEV"
-              run: |
-                set -euo pipefail
-                PROMOTE_PAYLOAD='{
-              "target_stage": "DEV",
-              "promotion_type": "move"
-                }'
-                PROMOTE_URL="$JF_URL/apptrust/api/v1/applications/$APPLICATION_KEY/versions/$APP_VERSION/promote"
-                echo "Promoting $APPLICATION_KEY@$APP_VERSION to DEV..."
-                HTTP_STATUS=$(curl -sS -L -o promote_response.json -w "%{http_code}" -X POST \
-              "$PROMOTE_URL" \
-              -H "Content-Type: application/json" \
-              -H "Authorization: Bearer $JF_ACCESS_TOKEN" \
-              -d "$PROMOTE_PAYLOAD")
-                echo "🔢 HTTP Status: $HTTP_STATUS"
-                echo "📨 Response Body:"; cat promote_response.json || true; echo
-                if [[ "$HTTP_STATUS" -lt 200 || "$HTTP_STATUS" -ge 300 ]]; then
-              echo "❌ Promotion to DEV failed" >&2
-              exit 1
-                fi
-                echo "✅ Application version promoted to DEV: $APPLICATION_KEY@$APP_VERSION"
-                rm -f promote_response.json
+      - name: "[Promote] Promote Application Version to DEV"
+        run: |
+          set -euo pipefail
+          PROMOTE_PAYLOAD='{
+            "target_stage": "DEV",
+            "promotion_type": "move"
+          }'
+          PROMOTE_URL="$JF_URL/apptrust/api/v1/applications/$APPLICATION_KEY/versions/$APP_VERSION/promote"
+          echo "Promoting $APPLICATION_KEY@$APP_VERSION to DEV..."
+          HTTP_STATUS=$(curl -sS -L -o promote_response.json -w "%{http_code}" -X POST \
+                  "$PROMOTE_URL" \
+                  -H "Content-Type: application/json" \
+                  -H "Authorization: Bearer $JF_ACCESS_TOKEN" \
+                  -d "$PROMOTE_PAYLOAD")
+          echo "🔢 HTTP Status: $HTTP_STATUS"
+          echo "📨 Response Body:"; cat promote_response.json || true; echo
+          if [[ "$HTTP_STATUS" -lt 200 || "$HTTP_STATUS" -ge 300 ]]; then
+            echo "❌ Promotion to DEV failed" >&2
+            exit 1
+          fi
+          echo "✅ Application version promoted to DEV: $APPLICATION_KEY@$APP_VERSION"
+          rm -f promote_response.json

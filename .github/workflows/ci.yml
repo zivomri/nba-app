@@ -150,6 +150,9 @@ jobs:
             --provider-id github-actions \
             --key "${EVIDENCE_PRIVATE_KEY:-}" \
             --key-alias "${EVIDENCE_KEY_ALIAS:-}" 
+      - name: Print jf evd help
+        run: |
+          jf evd --help
   create-app-version:
     needs: build-and-publish
     runs-on: ubuntu-latest

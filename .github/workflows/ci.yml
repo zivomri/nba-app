@@ -128,10 +128,8 @@ jobs:
               }
             },
             "createdAt": "2222-01-01T00:00:00.000Z",
-            "createdBy": "SonarQube"
-            "markdown": "# SVG in Markdown example\n\n## Details\n\n- **Type**:
-              svg examples\n\nThis demonstrates the syntax for embedding an SVG
-              without a separate file.\n\n!"
+            "createdBy": "SonarQube",
+            "markdown": "# SVG in Markdown example\n\n## Details\n\n- **Type**: svg examples\n\nThis demonstrates the syntax for embedding an SVG without a separate file.\n\n!"
           }
           EOF
 

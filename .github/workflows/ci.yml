@@ -99,30 +99,52 @@ jobs:
           NOW_TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           cat > .jfrog/evidence/sonarqube-coverage.json <<EOF
           {
-            "framework": "jest",
-            "status": "PASSED",
-            "coveragePercent": ${COVERAGE_PERCENT:-0},
-            "generatedAt": "${NOW_TS}",
-            "reports": ["coverage/lcov.info", "coverage/index.html"]
+            "predicateType": "https://jfrog.com/evidence/sonarqube/v1",
+            "predicate": {
+              "projectStatus": {
+                "status": "ERROR",
+                "ignoredConditions": false,
+                "caycStatus": "non-compliant",
+                "conditions": [
+                  {
+                    "status": "ERROR",
+                    "metricKey": "new_coverage",
+                    "comparator": "LT",
+                    "errorThreshold": "85",
+                    "actualValue": "82.50562381034781"
+                  },
+                  {
+                    "status": "OK",
+                    "metricKey": "skipped_tests",
+                    "comparator": "GT",
+                    "actualValue": "0"
+                  }
+                ],
+                "period": {
+                  "mode": "last_version",
+                  "date": "2000-04-27T00:45:23+0200",
+                  "parameter": "2015-12-07"
+                }
+              }
+            },
+            "createdAt": "2222-01-01T00:00:00.000Z",
+            "createdBy": "SonarQube"
+            "markdown": "# SVG in Markdown example\n\n## Details\n\n- **Type**:
+              svg examples\n\nThis demonstrates the syntax for embedding an SVG
+              without a separate file.\n\n!"
           }
           EOF
 
           cat > .jfrog/evidence/sonarqube-coverage.md <<EOF
-          # SonarQube Coverage Evidence
-
-          - **Framework:** jest
-          - **Status:** PASSED
-          - **Coverage:** ${COVERAGE_PERCENT:-0}%
-          - **Reports:** [coverage/lcov.info](coverage/lcov.info), [coverage/index.html](coverage/index.html)
-          - **Generated:** ${NOW_TS}
+          # SVG in Markdown example\n\n## Details\n\n- **Type**:
+              svg examples\n\nThis demonstrates the syntax for embedding an SVG
+              without a separate file.\n\n!
           EOF
 
           jf evd create-evidence \
             --predicate .jfrog/evidence/sonarqube-coverage.json \
             --markdown .jfrog/evidence/sonarqube-coverage.md \
-            --predicate-type "https://jestjs.io/evidence/results/v1" \
-            --package-repo-name "$DOCKER_REPO" \
-            --package-version "$IMAGE_TAG" \
+            --predicate-type "https://jfrog.com/evidence/sonarqube/v1" \
             --project poc \
             --package-name "$PACKAGE_NAME" \
             --package-version "$PACKAGE_VERSION" \

@@ -46,7 +46,7 @@ jobs:
   
       - name: Configure NPM
         run: |
-          jf npm-config --repo-deploy poc-npm --repo-resolve poc-npm
+          jf npm-config --repo-deploy poc-omriz-npm --repo-resolve poc-omriz-npm
       - name: Install dependencies with JFrog CLI
         run: |
           jf npm install --build-name=$build_name --build-number=$build_number  --project $PROJECT_KEY
@@ -59,7 +59,7 @@ jobs:
           jf evd create-evidence \
             --package-name ${{ env.NPM_PACKAGE_NAME }} \
             --package-version ${{ env.NPM_PACKAGE_BUILD_VERSION }} \
-            --package-repo-name poc-npm  \
+            --package-repo-name poc-omriz-npm  \
             --key "${{ env.EVIDENCE_PRIVATE_KEY }}"  \
             --key-alias ${{ env.EVIDENCE_KEY_ALIAS }} \
             --predicate ./sign_npm.json \
@@ -79,7 +79,7 @@ jobs:
             --predicate-type https://jfrog.com/evidence/build-signature/v1 \
             --build-name $build_name \
             --build-number $build_number \
-            --project poc \
+            --project $PROJECT_KEY \
             --key "${{ secrets.EVIDENCE_PRIVATE_KEY }}"  \
             --key-alias ${{ secrets.EVIDENCE_KEY_ALIAS }} 
           echo '🔎 Build Evidence attached: `build-signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
@@ -147,7 +147,7 @@ jobs:
             --project $PROJECT_KEY \
             --package-name "$PACKAGE_NAME" \
             --package-version "$PACKAGE_VERSION" \
-            --package-repo-name poc-npm \
+            --package-repo-name poc-omriz-npm \
             --provider-id github-actions \
             --key "${EVIDENCE_PRIVATE_KEY:-}" \
             --key-alias "${EVIDENCE_KEY_ALIAS:-}" 

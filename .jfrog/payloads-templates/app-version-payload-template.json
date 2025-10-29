@@ -6,7 +6,7 @@
         {
             "name": "$BUILD_NAME",
             "number": "$BUILD_NUMBER",
-            "repository_key": "poc-build-info",
+            "repository_key": "$PROJECT_KEY",
             "include_dependencies": false
         }
         ]

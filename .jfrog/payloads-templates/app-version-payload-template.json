@@ -6,7 +6,7 @@
         {
             "name": "$BUILD_NAME",
             "number": "$BUILD_NUMBER",
-            "repository_key": "$PROJECT_KEY",
+            "repository_key": "$PROJECT_KEY-build-info",
             "include_dependencies": false
         }
         ]

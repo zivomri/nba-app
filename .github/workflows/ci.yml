@@ -165,7 +165,7 @@ jobs:
       JF_PASSWORD: ${{ secrets.JF_PASSWORD }}
       JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
       ACTIONS_ID_TOKEN_REQUEST_URL: https://token.actions.githubusercontent.com
-
+      PROJECT_KEY: poc-omriz
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

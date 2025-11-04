@@ -1,0 +1,64 @@
+pre requesite 
+----
+connect to https://solenglatest.jfrog.io
+make sure to have Access token / Identity Token: 
+User Profile -> Generate an Identity Token
+fork https://github.com/zivomri/nba-app git project
+
+
+Phase 1 - Create Project and repositories
+1. In https://solenglatest.jfrog.io create a new project for the trainer with a key "apptrust-<your-name>"
+2. Create These 5 npm repositories in the project
+    a. Remote - <project-key>-npm-remote
+    b. Local - <project-key>-npm-local
+    c. Local - <project-key>-npm-local-release
+    d. Virtual <project-key>-npm which contains  <project-key>-npm-remote and <project-key>-npm-local
+    e. Virtual <project-key>-npm-release which contains  <project-key>-npm-remote and <project-key>-npm-release
+
+
+Phase 2 - create Application, Lifecycles and Policies
+3. Go to your project - Uder AppTrust - Create a new Application called "NBA App" with key "nba-app" with a Label {key = "type", value = "webapp"}. Adding an owner is optional
+4. Under Administration Tab - Stages & Lifecycles make sure to have DEV and PROD
+5. Under Platform - Choose Lifecycle Policies - click on "Create Lifecycle Policy" 
+    a. choose Application labels "type:webapp"
+    b. on Lifecycle Gate choose "DEV | Exit gate"
+    c. on Rule choose "High CVE with CVSS score between 7.0 and 8.9 (ignore applicability)"
+    d. on Actions choose "Fail"
+    e. choose a Policy name
+Phase 3 - Setting up the project
+6. fork https://github.com/zivomri/nba-app and then clone to locally
+7. In Github, go to your Settings ->  Secrets and variables -> Action And set those settings
+    JF_URL: https://solenglatest.jfrog.io
+    JF_ACCESS_TOKEN: <solenglatest.jfrog.io IdentityToken>
+    to set Environment Variables go to Settings ->  Secrets and variables -> Action -> Variables -> New repository variable
+        PROJECT_KEY: <your-project>
+8. Review .github/workflows/ci.yml file
+Phase 4 - Evidence Keys
+1. generate public and private keys 
+    - openssl rsa -in private.pem -pubout -out public.pem
+    or: https://cryptotools.net/rsagen
+2. Go to Administration - Security - Ket Managemnet - public Keys - Add Keys
+3. Add your public key (cert) and alias
+4. In Github, go to your Settings ->  Secrets and variables -> Action And set those settings
+   EVIDENCE_KEY_ALIAS: <key-alias>
+   EVIDENCE_PRIVATE_KEY: <private-key>
+
+Phase 5 - OIDC
+1. Go to Administration - General Managemnet - Manage Integrations - New Integration - OIDC Integration
+2. Fill the Form:
+    a. choose your name and description
+    b. choose Provider Type: Github
+    c. choose your github organization
+    d. add Identity Mapping with Priority 1 
+    e. add this json
+{
+  "iss": "https://token.actions.githubusercontent.com",
+  "repository": "<organization>/nba-app"
+}
+    f. set Access Token scope Admin and choose your Jfrog Platform username
+3. In Github, go to your Settings ->  Secrets and variables -> Action And set those settings
+    OIDC_PROVIDER_NAME: <your-provider-name>
+    
+9. go to package.json file, bump the "version", then comit and push
+
+

@@ -1,6 +1,6 @@
 {
   "name": "nba-app",
-  "version": "0.1.5-1",
+  "version": "0.0.0",
   "main": "server.js",
   "bundledDependencies": true,
   "private": false,

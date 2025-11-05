@@ -57,7 +57,7 @@ jobs:
           jf evd create-evidence \
             --package-name ${{ env.NPM_PACKAGE_NAME }} \
             --package-version ${{ env.NPM_PACKAGE_BUILD_VERSION }} \
-            --package-repo-name $PROJECT_KEY-npm  \
+            --package-repo-name ${{ env.PROJECT_KEY }}-npm  \
             --key "${{ env.EVIDENCE_PRIVATE_KEY }}"  \
             --key-alias ${{ env.EVIDENCE_KEY_ALIAS }} \
             --predicate ./sign_npm.json \

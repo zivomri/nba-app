@@ -81,6 +81,29 @@ jobs:
             --key "${{ secrets.EVIDENCE_PRIVATE_KEY }}"  \
             --key-alias ${{ secrets.EVIDENCE_KEY_ALIAS }} 
           echo '🔎 Build Evidence attached: `build-signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
+      - name: Index Build Info in Xray
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
+          echo "Checking if build '$BUILD_NAME' is indexed in Xray..."
+          jf xr curl "api/v1/binMgr/default/builds?projectKey=$PROJECT_KEY" > builds_status.json
+          
+          IS_NON_INDEXED=$(jq --arg bn "$BUILD_NAME" '.non_indexed_builds | index($bn) != null' builds_status.json)
+          
+          if [ "$IS_NON_INDEXED" = "true" ]; then
+            echo "Build '$BUILD_NAME' is not indexed. Indexing it now..."
+            jq --arg bn "$BUILD_NAME" '
+              .non_indexed_builds |= map(select(. != $bn)) |
+              .indexed_builds |= (. + [$bn])
+            ' builds_status.json > updated_builds.json
+            
+            echo "Updated builds payload:"
+            cat updated_builds.json
+            
+            jf xr curl -X PUT "api/v1/binMgr/default/builds?projectKey=$PROJECT_KEY" -H "Content-Type: application/json" -d @updated_builds.json
+            echo "Build '$BUILD_NAME' has been indexed."
+              else
+            echo "Build '$BUILD_NAME' is already indexed or does not exist in non-indexed list."
+          fi
       - name: Scan Build Info with JFrog Xray
         run: |
           jf build-scan --format=json "$BUILD_NAME" "$build_number" --project $PROJECT_KEY

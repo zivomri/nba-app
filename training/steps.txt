@@ -16,15 +16,10 @@ Phase 1 - Create Project and repositories
     e. Virtual <project-key>-npm-release which contains  <project-key>-npm-remote and <project-key>-npm-release
 
 
-Phase 2 - create Application, Lifecycles and Policies
+Phase 2 - create Application and Lifecycles
 3. Go to your project - Uder AppTrust - Create a new Application called "NBA App" with key "nba-app" with a Label {key = "type", value = "webapp"}. Adding an owner is optional
 4. Under Administration Tab - Stages & Lifecycles make sure to have DEV and PROD
-5. Under Platform - Choose Lifecycle Policies - click on "Create Lifecycle Policy" 
-    a. choose Application labels "type:webapp"
-    b. on Lifecycle Gate choose "DEV | Exit gate"
-    c. on Rule choose "High CVE with CVSS score between 7.0 and 8.9 (ignore applicability)"
-    d. on Actions choose "Fail"
-    e. choose a Policy name
+
 Phase 3 - Setting up the project
 6. fork https://github.com/zivomri/nba-app and then clone to locally
 7. In Github, go to your Settings ->  Secrets and variables -> Action And set those settings
@@ -35,8 +30,9 @@ Phase 3 - Setting up the project
 8. Review .github/workflows/ci.yml file
 Phase 4 - Evidence Keys
 1. generate public and private keys 
-    - openssl rsa -in private.pem -pubout -out public.pem
-    or: https://cryptotools.net/rsagen
+    - openssl genrsa -aes256 -out private.pem 4096 
+    - openssl rsa -pubout -in private.pem -out public.pem
+    or: https://emn178.github.io/online-tools/rsa/key-generator/
 2. Go to Administration - Security - Ket Managemnet - public Keys - Add Keys
 3. Add your public key (cert) and alias
 4. In Github, go to your Settings ->  Secrets and variables -> Action And set those settings
@@ -58,7 +54,16 @@ Phase 5 - OIDC
     f. set Access Token scope Admin and choose your Jfrog Platform username
 3. In Github, go to your Settings ->  Secrets and variables -> Action And set those settings
     OIDC_PROVIDER_NAME: <your-provider-name>
-    
-9. go to package.json file, bump the "version", then comit and push
+
+Phase 6 - commit a code change - trigger a new version
+1. go to package.json file, bump the "version", then comit and push
+
+Phase 7 - Setup Policies
+5. Under Platform - AppTrust - Applications - <your app> - Choose Lifecycle Policies - click on "Create Lifecycle Policy" 
+    a. choose Application labels "type:webapp"
+    b. on Lifecycle Gate choose "DEV | Exit gate"
+    c. on Rule choose "High CVE with CVSS score between 7.0 and 8.9 (ignore applicability)"
+    d. on Actions choose "Fail"
+    e. choose a Policy name
 
 

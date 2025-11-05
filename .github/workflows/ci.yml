@@ -16,6 +16,7 @@ jobs:
       build_number: ${{ github.run_number }}
       EVIDENCE_PRIVATE_KEY: ${{ secrets.EVIDENCE_PRIVATE_KEY }}
       EVIDENCE_KEY_ALIAS: ${{ secrets.EVIDENCE_KEY_ALIAS }}
+      PROJECT_KEY: ${{ vars.PROJECT_KEY }} 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,8 +33,6 @@ jobs:
         env:
           JF_URL: ${{ secrets.JF_URL }}
           # Basic authentication credentials
-          JF_USER: ${{ secrets.JF_USER }}
-          JF_PASSWORD: ${{ secrets.JF_PASSWORD }}
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
           JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -160,10 +159,9 @@ jobs:
       BUILD_NAME: nba-app-ci
       BUILD_NUMBER: ${{ github.run_number }}
       JF_URL: ${{ secrets.JF_URL }}
-      JF_USER: ${{ secrets.JF_USER }}
-      JF_PASSWORD: ${{ secrets.JF_PASSWORD }}
       JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
       ACTIONS_ID_TOKEN_REQUEST_URL: https://token.actions.githubusercontent.com
+      PROJECT_KEY: ${{ vars.PROJECT_KEY }}  # Add this line
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -179,8 +177,6 @@ jobs:
         env:
           JF_URL: ${{ secrets.JF_URL }}
           # Basic authentication credentials
-          JF_USER: ${{ secrets.JF_USER }}
-          JF_PASSWORD: ${{ secrets.JF_PASSWORD }}
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
           JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: "[Setup] AppTrust variables"

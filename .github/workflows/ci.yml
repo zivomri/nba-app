@@ -14,8 +14,6 @@ jobs:
     env:
       BUILD_NAME: nba-app-ci
       build_number: ${{ github.run_number }}
-      EVIDENCE_PRIVATE_KEY: ${{ secrets.EVIDENCE_PRIVATE_KEY }}
-      EVIDENCE_KEY_ALIAS: ${{ secrets.EVIDENCE_KEY_ALIAS }}
       PROJECT_KEY: ${{ vars.PROJECT_KEY }} 
     steps:
       - name: Checkout code
@@ -52,16 +50,22 @@ jobs:
         run: |
           jf npm publish --build-name=$BUILD_NAME --build-number=$build_number  --project $PROJECT_KEY
       - name: Evidence Publish for NPM 🐸
+        env:
+          EVIDENCE_PRIVATE_KEY: ${{ secrets.EVIDENCE_PRIVATE_KEY }}
+          EVIDENCE_KEY_ALIAS: ${{ secrets.EVIDENCE_KEY_ALIAS }}
         run: |
+          # Write key to file so newlines are preserved (multiline PEM in secrets can break when passed inline)
+          printf '%s\n' "$EVIDENCE_PRIVATE_KEY" > evidence_private_key.pem
+          chmod 600 evidence_private_key.pem
           echo '{ "actor": "${{ github.actor }}", "date": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'" }' > sign_npm.json
           jf evd create-evidence \
             --package-name ${{ env.NPM_PACKAGE_NAME }} \
             --package-version ${{ env.NPM_PACKAGE_BUILD_VERSION }} \
-            --package-repo-name ${{ env.PROJECT_KEY }}-npm  \
-            --key "${{ env.EVIDENCE_PRIVATE_KEY }}"  \
-            --key-alias ${{ env.EVIDENCE_KEY_ALIAS }} \
+            --package-repo-name ${{ env.PROJECT_KEY }}-npm \
+            --key "$(cat evidence_private_key.pem)" \
+            --key-alias "$EVIDENCE_KEY_ALIAS" \
             --predicate ./sign_npm.json \
-            --predicate-type https://jfrog.com/evidence/signature/v1 
+            --predicate-type https://jfrog.com/evidence/signature/v1
           echo '🔎 NPM build Evidence attached: `signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
       - name: Collect build environment info
         run: |
@@ -70,7 +74,12 @@ jobs:
         run: |
           jf rt build-publish "$BUILD_NAME" "$build_number"  --project $PROJECT_KEY
       - name: Sign Build Evidence 🐸
+        env:
+          EVIDENCE_PRIVATE_KEY: ${{ secrets.EVIDENCE_PRIVATE_KEY }}
+          EVIDENCE_KEY_ALIAS: ${{ secrets.EVIDENCE_KEY_ALIAS }}
         run: |
+          printf '%s\n' "$EVIDENCE_PRIVATE_KEY" > evidence_private_key.pem
+          chmod 600 evidence_private_key.pem
           echo '{ "actor": "${{ github.actor }}", "date": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'" }' > sign_build.json
           jf evd create-evidence \
             --predicate ./sign_build.json \
@@ -78,8 +87,8 @@ jobs:
             --build-name $BUILD_NAME \
             --build-number $build_number \
             --project $PROJECT_KEY \
-            --key "${{ secrets.EVIDENCE_PRIVATE_KEY }}"  \
-            --key-alias ${{ secrets.EVIDENCE_KEY_ALIAS }} 
+            --key "$(cat evidence_private_key.pem)" \
+            --key-alias "$EVIDENCE_KEY_ALIAS"
           echo '🔎 Build Evidence attached: `build-signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
       - name: Index Build Info in Xray
         run: |
@@ -113,6 +122,8 @@ jobs:
           EVIDENCE_KEY_ALIAS: ${{ secrets.EVIDENCE_KEY_ALIAS }}
         run: |
           sudo apt-get update && sudo apt-get install -y jq
+          printf '%s\n' "$EVIDENCE_PRIVATE_KEY" > evidence_private_key.pem
+          chmod 600 evidence_private_key.pem
           PACKAGE_VERSION=$(jq -r '.version' package.json)
           PACKAGE_NAME=$(jq -r '.name' package.json)
 
@@ -170,8 +181,8 @@ jobs:
             --package-version "$PACKAGE_VERSION" \
             --package-repo-name $PROJECT_KEY-npm \
             --provider-id github-actions \
-            --key "${EVIDENCE_PRIVATE_KEY:-}" \
-            --key-alias "${EVIDENCE_KEY_ALIAS:-}" 
+            --key "$(cat evidence_private_key.pem)" \
+            --key-alias "$EVIDENCE_KEY_ALIAS" 
       - name: Print jf evd help
         run: |
           jf evd --help
@@ -284,8 +295,11 @@ jobs:
       - name: "[Evidence] Attach UNASSIGNED (SLSA, Jira)"
         env:
           EVIDENCE_PRIVATE_KEY: ${{ secrets.EVIDENCE_PRIVATE_KEY }}
+          EVIDENCE_KEY_ALIAS: ${{ secrets.EVIDENCE_KEY_ALIAS }}
         run: |
           set -euo pipefail
+          printf '%s\n' "$EVIDENCE_PRIVATE_KEY" > evidence_private_key.pem
+          chmod 600 evidence_private_key.pem
           if ! command -v envsubst >/dev/null 2>&1; then sudo apt-get update -y && sudo apt-get install -y gettext-base; fi
           NOW_TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           export NOW_TS="${NOW_TS}"
@@ -309,8 +323,8 @@ jobs:
             --release-bundle "$APPLICATION_KEY" \
             --release-bundle-version "$APP_VERSION" \
             --project "$PROJECT_KEY" \
-            --key "${{ secrets.EVIDENCE_PRIVATE_KEY }}" \
-            --key-alias "${{ secrets.EVIDENCE_KEY_ALIAS }}" || echo "⚠️ SLSA evidence attach failed"
+            --key "$(cat evidence_private_key.pem)" \
+            --key-alias "$EVIDENCE_KEY_ALIAS" || echo "⚠️ SLSA evidence attach failed"
 
           # Jira predicate and markdown
           # Generate a small set of pseudo tickets and types for the release notes
@@ -341,8 +355,8 @@ jobs:
             --release-bundle "$APPLICATION_KEY" \
             --release-bundle-version "$APP_VERSION" \
             --project "$PROJECT_KEY" \
-            --key "${{ secrets.EVIDENCE_PRIVATE_KEY }}"  \
-            --key-alias "${{ secrets.EVIDENCE_KEY_ALIAS }}" || echo "⚠️ Jira evidence attach failed"
+            --key "$(cat evidence_private_key.pem)" \
+            --key-alias "$EVIDENCE_KEY_ALIAS" || echo "⚠️ Jira evidence attach failed"
 
       - name: "[Promote] Promote Application Version to DEV"
         run: |

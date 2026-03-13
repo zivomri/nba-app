@@ -15,7 +15,6 @@ jobs:
       BUILD_NAME: nba-app-ci
       build_number: ${{ github.run_number }}
       PROJECT_KEY: ${{ vars.PROJECT_KEY }}
-      DOCKER_REPO_NAME: rsa-demo-docker-local 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -46,10 +45,10 @@ jobs:
           # jf ca --format=table --threads=100
       - name: Install dependencies with JFrog CLI
         run: |
-          jf npm install --project $PROJECT_KEY
+          jf npm install --build-name "$BUILD_NAME" --build-number "$build_number" --project $PROJECT_KEY
       - name: Publish npm package to JFrog Artifactory
         run: |
-          jf npm publish --project $PROJECT_KEY
+          jf npm publish --build-name "$BUILD_NAME" --build-number "$build_number" --project $PROJECT_KEY
       - name: Evidence Publish for NPM 🐸
         env:
           EVIDENCE_PRIVATE_KEY: ${{ secrets.EVIDENCE_PRIVATE_KEY }}
@@ -188,24 +187,42 @@ jobs:
         run: |
           jf evd --help
 
-      - name: Capture Docker image tag
+  build-docker:
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    env:
+      BUILD_NAME: nba-app-ci-docker
+      build_number: ${{ github.run_number }}
+      PROJECT_KEY: ${{ vars.PROJECT_KEY }}
+      DOCKER_REPO_NAME: rsa-demo-docker-local
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up JFrog CLI
+        uses: JFROG/setup-jfrog-cli@v4.8.0
+        env:
+          JF_URL: ${{ secrets.JF_URL }}
+        with:
+          version: '2.96.0'
+          oidc-provider-name: omriz-oidc
+          oidc-audience: omriz-oidc
+      - name: Capture version and image tag
         run: |
-          echo "IMAGE_TAG=$NPM_PACKAGE_BUILD_VERSION-b${build_number}" >> $GITHUB_ENV
-
+          NPM_PACKAGE_BUILD_VERSION=$(jq -r '.version' package.json)
+          echo "NPM_PACKAGE_BUILD_VERSION=$NPM_PACKAGE_BUILD_VERSION" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${NPM_PACKAGE_BUILD_VERSION}-b${build_number}" >> $GITHUB_ENV
       - name: Enable Buildx
         run: |
           docker buildx create --name mybuilder --driver docker-container --use
           docker buildx inspect --bootstrap
-
       - name: Login to JFrog Artifactory (Docker)
         env:
           JF_URL: ${{ secrets.JF_URL }}
-          JF_ARTIFACTORY_USER: ${{ secrets.JF_ARTIFACTORY_USER }}
+          JF_ARTIFACTORY_USER: omriz
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
         run: |
           JF_HOST="${JF_URL#https://}"
           echo "$JF_ACCESS_TOKEN" | docker login "$JF_HOST" -u "$JF_ARTIFACTORY_USER" --password-stdin
-
       - name: Build Docker image
         id: build
         env:
@@ -221,18 +238,15 @@ jobs:
             --label author="${{ github.actor }}" \
             -t "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}" \
             -f Dockerfile .
-
       - name: Publish Docker build info to JFrog Artifactory
         run: |
           jf rt build-docker-create "/${DOCKER_REPO_NAME}" --image-file=build-metadata \
             --build-name="${BUILD_NAME}" \
             --build-number="${build_number}" \
             --project="${PROJECT_KEY}"
-
       - name: Publish build to Artifactory (with Docker image)
         run: |
           jf rt build-publish "${BUILD_NAME}" "${build_number}" --project "${PROJECT_KEY}"
-
       - name: Sign Docker image evidence 🐸
         env:
           EVIDENCE_PRIVATE_KEY: ${{ secrets.EVIDENCE_PRIVATE_KEY }}
@@ -250,7 +264,6 @@ jobs:
             --key "$(cat evidence_private_key.pem)" \
             --key-alias "$EVIDENCE_KEY_ALIAS"
           echo '🔎 Docker image Evidence attached: `build-signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
-
       - name: Index Build Info in Xray (Docker)
         run: |
           sudo apt-get update && sudo apt-get install -y jq
@@ -268,16 +281,14 @@ jobs:
           else
             echo "Build '${BUILD_NAME}' is already indexed or does not exist in non-indexed list."
           fi
-
       - name: Scan Docker build with JFrog Xray
         run: |
           jf build-scan --format=json "${BUILD_NAME}" "${build_number}" --project "${PROJECT_KEY}"
 
   create-app-version:
-    needs: build-and-publish
+    needs: [build-and-publish, build-docker]
     runs-on: ubuntu-latest
     env:
-      BUILD_NAME: nba-app-ci
       BUILD_NUMBER: ${{ github.run_number }}
       JF_URL: ${{ secrets.JF_URL }}
       PROJECT_KEY: ${{ vars.PROJECT_KEY }}
@@ -321,7 +332,8 @@ jobs:
         run: |
           set +e
           jf apptrust version-create "$APPLICATION_KEY" "$APP_VERSION" \
-            --source-type-builds "name=$BUILD_NAME, id=$BUILD_NUMBER" \
+            --source-type-builds "name=nba-app-ci, id=$BUILD_NUMBER" \
+            --source-type-builds "name=nba-app-ci-docker, id=$BUILD_NUMBER" \
             --project $PROJECT_KEY \
             --sync 2>&1 | tee version_create_out.txt
           RV=$?
@@ -330,7 +342,8 @@ jobs:
             echo "Application was missing; creating it and retrying version-create..."
             jf apptrust app-create "$APPLICATION_KEY" --application-name "NBA App"
             jf apptrust version-create "$APPLICATION_KEY" "$APP_VERSION" \
-              --source-type-builds "name=$BUILD_NAME, id=$BUILD_NUMBER" \
+              --source-type-builds "name=nba-app-ci, id=$BUILD_NUMBER" \
+              --source-type-builds "name=nba-app-ci-docker, id=$BUILD_NUMBER" \
               --sync
           elif [[ $RV -ne 0 ]]; then
             cat version_create_out.txt

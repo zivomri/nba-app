@@ -1,0 +1,19 @@
+---
+description: Bump patch version in package.json when making app changes
+globs: package.json
+alwaysApply: false
+---
+
+# Bump Patch Version in package.json
+
+When editing or touching **package.json** in a way that reflects app changes (e.g. before a release, after feature/fix work, or when the user asks for a version bump):
+
+1. **Bump only the patch** (third segment of semver).
+   - Example: `"version": "0.0.3"` → `"version": "0.0.4"`
+   - Example: `"version": "1.2.10"` → `"version": "1.2.11"`
+
+2. **Do not change** major or minor unless the user explicitly asks (e.g. "bump minor" or "release major").
+
+3. **Update the version field only**; keep the rest of package.json unchanged unless other edits are requested.
+
+Apply this when the user asks to bump the version, or when completing a change that should be released and version is in scope.

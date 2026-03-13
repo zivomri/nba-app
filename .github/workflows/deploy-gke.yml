@@ -1,14 +1,15 @@
-# Deploy Helm "hello world" chart to GKE.
+# Deploy to GKE using Workload Identity Federation (no service account keys).
 #
 # Required GitHub Secrets (Settings > Secrets and variables > Actions):
-#   GCP_SA_KEY              - GCP service account JSON key: raw JSON or base64-encoded JSON (avoids paste/encoding issues)
-#   GCP_PROJECT_ID          - GCP project ID
-#   GCP_REGION              - GKE cluster region (e.g. us-central1); for zonal use GCP_ZONE instead
-#   GKE_CLUSTER_NAME        - GKE cluster name
-#   HELM_NAMESPACE          - Kubernetes namespace for the Helm release
+#   GCP_PROJECT_ID                    - GCP project ID
+#   GCP_REGION                        - GKE cluster region (e.g. us-central1)
+#   GKE_CLUSTER_NAME                  - GKE cluster name
+#   HELM_NAMESPACE                    - Kubernetes namespace for the Helm release
+#   GCP_WORKLOAD_IDENTITY_PROVIDER    - WIF provider resource name (e.g. projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL/providers/PROVIDER)
+#   GCP_SERVICE_ACCOUNT               - GCP service account email (e.g. my-sa@my-project.iam.gserviceaccount.com)
 #
-# Optional (for zonal clusters): add secret GCP_ZONE (e.g. us-central1-a) and set GCP_REGION to empty.
-name: Deploy Helm Hello World to GKE
+# Optional: GCP_ZONE for zonal clusters (e.g. us-central1-a); then get-credentials uses --zone instead of --region.
+name: Deploy to GKE (Workload Identity)
 
 on:
   push:
@@ -17,8 +18,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
   id-token: write
+  contents: read
 
 jobs:
   deploy:
@@ -27,22 +28,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
-
-      - name: Authenticate to Google Cloud
-        run: |
-          # Support both raw JSON and base64-encoded JSON (avoids "invalid JSON" from paste/encoding)
-          KEY="${{ secrets.GCP_SA_KEY }}"
-          if echo "$KEY" | base64 -d > /tmp/gcp-key.json 2>/dev/null && jq -e . /tmp/gcp-key.json >/dev/null 2>&1; then
-            echo "Using base64-decoded service account key"
-          else
-            echo "$KEY" > /tmp/gcp-key.json
-          fi
-          gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
-          rm -f /tmp/gcp-key.json
 
       - name: Get GKE credentials
         run: |

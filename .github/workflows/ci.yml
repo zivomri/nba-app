@@ -219,7 +219,7 @@ jobs:
       - name: "[Ensure] AppTrust application exists"
         run: |
           set +e
-          jf apptrust app-create "$APPLICATION_KEY" --project "$PROJECT_KEY" --application-name "NBA App" 2>&1 | tee app_create_out.txt
+          jf apptrust app-create "$APPLICATION_KEY" --application-name "NBA App" 2>&1 | tee app_create_out.txt
           RV=$?
           set -e
           if [[ $RV -eq 0 ]]; then
@@ -234,16 +234,14 @@ jobs:
         run: |
           set +e
           jf apptrust version-create "$APPLICATION_KEY" "$APP_VERSION" \
-            --project "$PROJECT_KEY" \
             --source-type-builds "name=$BUILD_NAME, id=$BUILD_NUMBER" \
             --sync 2>&1 | tee version_create_out.txt
           RV=$?
           set -e
           if [[ $RV -ne 0 ]] && grep -q "could not find application" version_create_out.txt 2>/dev/null; then
             echo "Application was missing; creating it and retrying version-create..."
-            jf apptrust app-create "$APPLICATION_KEY" --project "$PROJECT_KEY" --application-name "NBA App"
+            jf apptrust app-create "$APPLICATION_KEY" --application-name "NBA App"
             jf apptrust version-create "$APPLICATION_KEY" "$APP_VERSION" \
-              --project "$PROJECT_KEY" \
               --source-type-builds "name=$BUILD_NAME, id=$BUILD_NUMBER" \
               --sync
           elif [[ $RV -ne 0 ]]; then

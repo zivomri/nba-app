@@ -33,7 +33,7 @@ jobs:
         uses: JFROG/setup-jfrog-cli@v4.8.0
         id: jfrog_cli
         env:
-          JF_URL: https://entplus.jfrog.io
+          JF_URL: ${{ secrets.JF_URL }}
         with:
           version: '2.96.0'
           oidc-provider-name: omriz-oidc
@@ -192,7 +192,7 @@ jobs:
         uses: JFROG/setup-jfrog-cli@v4.8.0
         id: jfrog_cli
         env:
-          JF_URL: https://entplus.jfrog.io
+          JF_URL: ${{ secrets.JF_URL }}
         with:
           version: '2.96.0'
           oidc-provider-name: omriz-oidc

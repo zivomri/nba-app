@@ -30,7 +30,7 @@ Phase 3 - Setting up the project
 8. Review .github/workflows/ci.yml file
 Phase 4 - Evidence Keys
 1. generate public and private keys 
-    - openssl genrsa -aes256 -out private.pem 4096 
+    - openssl genrsa -out private.pem 4096 
     - openssl rsa -pubout -in private.pem -out public.pem
     or: https://emn178.github.io/online-tools/rsa/key-generator/
 2. Go to Administration - Security - Ket Managemnet - public Keys - Add Keys

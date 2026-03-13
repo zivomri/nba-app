@@ -1,0 +1,14 @@
+---
+description: When user asks to commit and push, run git add -A, commit, and push
+alwaysApply: true
+---
+
+# Git: Add, Commit, and Push
+
+When the user asks to commit and push (e.g. "git add all, commit and push", "commit and push", "push my changes"):
+
+1. Run `git add -A` to stage all changes.
+2. Run `git commit` with a short, descriptive message based on the staged changes (e.g. from `git status` or diff).
+3. Run `git push` to the current branch.
+
+Use `git_write` and `network` permissions for these commands. Do not commit secrets or private keys; warn if sensitive files are being staged.

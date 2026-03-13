@@ -1,0 +1,93 @@
+# Manual workflow: promote an application version to production (release).
+# Uses AppTrust Release API: POST .../applications/{key}/versions/{version}/release
+name: Promote to Release (Production)
+
+on:
+  workflow_dispatch:
+    inputs:
+      application_key:
+        description: 'Application key (default: nba-app)'
+        required: false
+        default: 'nba-app'
+      version:
+        description: 'Version to release (e.g. 0.0.4). Leave empty to use package.json version.'
+        required: false
+        default: ''
+      promotion_type:
+        description: 'Promotion type'
+        required: false
+        default: 'copy'
+        type: choice
+        options:
+          - copy
+          - move
+          - dry_run
+      async:
+        description: 'Run release asynchronously'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  promote-to-release:
+    runs-on: ubuntu-latest
+    env:
+      JF_URL: ${{ secrets.JF_URL }}
+      JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+      PROJECT_KEY: ${{ vars.PROJECT_KEY }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Resolve application key and version
+        id: vars
+        run: |
+          APPLICATION_KEY="${{ inputs.application_key }}"
+          if [[ -z "$APPLICATION_KEY" ]]; then APPLICATION_KEY="nba-app"; fi
+          echo "application_key=$APPLICATION_KEY" >> $GITHUB_OUTPUT
+          VERSION="${{ inputs.version }}"
+          if [[ -z "$VERSION" ]]; then
+            VERSION=$(jq -r '.version' package.json)
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "✅ Application: $APPLICATION_KEY"
+          echo "✅ Version to release: $VERSION"
+
+      - name: Release application version to production
+        run: |
+          set -euo pipefail
+          APPLICATION_KEY="${{ steps.vars.outputs.application_key }}"
+          VERSION="${{ steps.vars.outputs.version }}"
+          PROMOTION_TYPE="${{ inputs.promotion_type }}"
+          ASYNC="${{ inputs.async }}"
+          RELEASE_URL="${JF_URL}/apptrust/api/v1/applications/${APPLICATION_KEY}/versions/${VERSION}/release"
+          if [[ "$ASYNC" == "true" ]]; then RELEASE_URL="${RELEASE_URL}?async=true"; fi
+          RELEASE_PAYLOAD=$(jq -n \
+            --arg pt "$PROMOTION_TYPE" \
+            '{ promotion_type: $pt }')
+          echo "📤 Releasing $APPLICATION_KEY@$VERSION to production (promotion_type=$PROMOTION_TYPE, async=$ASYNC)..."
+          echo "📤 Request payload: $RELEASE_PAYLOAD"
+          HTTP_STATUS=$(curl -sS -L -o release_response.json -w "%{http_code}" -X POST \
+            "$RELEASE_URL" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $JF_ACCESS_TOKEN" \
+            -d "$RELEASE_PAYLOAD")
+          echo "🔢 HTTP Status: $HTTP_STATUS"
+          echo "📨 Response Body:"
+          cat release_response.json | jq . 2>/dev/null || cat release_response.json
+          echo
+          if [[ "$HTTP_STATUS" -lt 200 || "$HTTP_STATUS" -ge 300 ]]; then
+            echo "❌ Release to production failed" >&2
+            exit 1
+          fi
+          STATUS=$(jq -r '.status // empty' release_response.json 2>/dev/null || true)
+          if [[ "$STATUS" == "failure" ]]; then
+            echo "❌ Release reported status: failure (check policy evaluations)" >&2
+            exit 1
+          fi
+          echo "✅ Application version released to production: $APPLICATION_KEY@$VERSION"
+          rm -f release_response.json

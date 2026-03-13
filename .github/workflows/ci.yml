@@ -28,20 +28,16 @@ jobs:
         run: |
           echo NPM_PACKAGE_BUILD_VERSION=$(jq -r '.version' package.json) >> $GITHUB_ENV
           echo NPM_PACKAGE_NAME=$(jq -r '.name' package.json) >> $GITHUB_ENV 
+      
       - name: Set up JFrog CLI
-        uses: jfrog/setup-jfrog-cli@v4
+        uses: JFROG/setup-jfrog-cli@v4.8.0
+        id: jfrog_cli
         env:
-          JF_URL: ${{ secrets.JF_URL }}
-          # Basic authentication credentials
-          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
-          JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JF_URL: https://entplus.jfrog.io
         with:
-          version: latest
-          oidc-provider-name: ${{ secrets.OIDC_PROVIDER_NAME }}
-          disable-job-summary: true
-          disable-auto-build-publish: true
-          disable-auto-evidence-collection: false
-  
+          version: '2.96.0'
+          oidc-provider-name: omriz-oidc
+          oidc-audience: omriz-oidc
       - name: Configure NPM
         run: |
           jf npm-config --repo-deploy $PROJECT_KEY-npm --repo-resolve $PROJECT_KEY-npm     
@@ -193,19 +189,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Set up JFrog CLI
-        uses: EyalDelarea/setup-jfrog-cli@swampUpAppTrust
-        with:
-          version: latest
-          oidc-provider-name: ${{ secrets.OIDC_PROVIDER_NAME }}
-          oidc-audience: ${{ secrets.JF_URL }}
-          disable-job-summary: true
-          disable-auto-build-publish: true
-          disable-auto-evidence-collection: false
+        uses: JFROG/setup-jfrog-cli@v4.8.0
+        id: jfrog_cli
         env:
-          JF_URL: ${{ secrets.JF_URL }}
-          # Basic authentication credentials
-          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
-          JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JF_URL: https://entplus.jfrog.io
+        with:
+          version: '2.96.0'
+          oidc-provider-name: omriz-oidc
+          oidc-audience: omriz-oidc
       - name: "[Setup] AppTrust variables"
         run: |
           sudo apt-get update && sudo apt-get install -y jq

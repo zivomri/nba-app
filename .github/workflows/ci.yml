@@ -45,10 +45,10 @@ jobs:
           # jf ca --format=table --threads=100
       - name: Install dependencies with JFrog CLI
         run: |
-          jf npm install --build-name=$BUILD_NAME --build-number=$build_number  --project $PROJECT_KEY
+          jf npm install --project $PROJECT_KEY
       - name: Publish npm package to JFrog Artifactory
         run: |
-          jf npm publish --build-name=$BUILD_NAME --build-number=$build_number  --project $PROJECT_KEY
+          jf npm publish --project $PROJECT_KEY
       - name: Evidence Publish for NPM 🐸
         env:
           EVIDENCE_PRIVATE_KEY: ${{ secrets.EVIDENCE_PRIVATE_KEY }}
@@ -186,6 +186,123 @@ jobs:
       - name: Print jf evd help
         run: |
           jf evd --help
+
+  docker-build:
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    env:
+      BUILD_NAME: nba-app-ci
+      buildnumber: ${{ github.run_number }}
+      buildname: nba-app-ci
+      PROJECT_KEY: ${{ vars.PROJECT_KEY }}
+      DOCKER_REPO_NAME: rsa-demo-docker-local
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JFrog CLI
+        uses: JFROG/setup-jfrog-cli@v4.8.0
+        env:
+          JF_URL: ${{ secrets.JF_URL }}
+        with:
+          version: '2.96.0'
+          oidc-provider-name: omriz-oidc
+          oidc-audience: omriz-oidc
+
+      - name: Capture version and image tag
+        id: version
+        run: |
+          POC_STARTER_VERSION=$(jq -r '.version' package.json)
+          echo "POC_STARTER_VERSION=$POC_STARTER_VERSION" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${POC_STARTER_VERSION}-b${buildnumber}" >> $GITHUB_ENV
+
+      - name: Enable Buildx
+        run: |
+          docker buildx create --name mybuilder --driver docker-container --use
+          docker buildx inspect --bootstrap
+
+      - name: Login to JFrog Artifactory (Docker)
+        env:
+          JF_URL: ${{ secrets.JF_URL }}
+          JF_ARTIFACTORY_USER: ${{ secrets.JF_ARTIFACTORY_USER }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+        run: |
+          JF_HOST="${JF_URL#https://}"
+          echo "$JF_ACCESS_TOKEN" | docker login "$JF_HOST" -u "$JF_ARTIFACTORY_USER" --password-stdin
+
+      - name: Build Docker image
+        id: build
+        env:
+          JF_URL: ${{ secrets.JF_URL }}
+          buildnumber: ${{ env.buildnumber }}
+          buildname: ${{ env.buildname }}
+          env.PROJECT_KEY: ${{ env.PROJECT_KEY }}
+          DOCKER_REPO_NAME: ${{ env.DOCKER_REPO_NAME }}
+          POC_STARTER_VERSION: ${{ env.POC_STARTER_VERSION }}
+          JFROG_CLI_BUILD_NUMBER: ${{ env.buildnumber }}
+        run: |
+          JF_HOST="${JF_URL#https://}"
+          docker buildx build --no-cache --provenance=false --push \
+            --metadata-file=build-metadata \
+            --platform linux/arm64,linux/amd64 \
+            --label build.number="${buildnumber}" \
+            --label build.name="${buildname}" \
+            --label project.name="${PROJECT_KEY}" \
+            --label author="${{ github.actor }}" \
+            -t "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${POC_STARTER_VERSION}-b${JFROG_CLI_BUILD_NUMBER}" \
+            -f Dockerfile .
+
+      - name: Publish Docker build info to JFrog Artifactory
+        run: |
+          jf rt build-docker-create "/${DOCKER_REPO_NAME}" --image-file=build-metadata \
+            --build-name="${buildname}" \
+            --build-number="${buildnumber}" \
+            --project="${PROJECT_KEY}"
+
+      - name: Publish build to Artifactory (with Docker image)
+        run: |
+          jf rt build-publish "${buildname}" "${buildnumber}" --project "${PROJECT_KEY}"
+
+      - name: Sign Docker image evidence 🐸
+        env:
+          EVIDENCE_PRIVATE_KEY: ${{ secrets.EVIDENCE_PRIVATE_KEY }}
+          EVIDENCE_KEY_ALIAS: ${{ secrets.EVIDENCE_KEY_ALIAS }}
+        run: |
+          printf '%s\n' "$EVIDENCE_PRIVATE_KEY" > evidence_private_key.pem
+          chmod 600 evidence_private_key.pem
+          echo '{ "actor": "${{ github.actor }}", "date": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'", "image": "${DOCKER_REPO_NAME}/nba-app:'"${IMAGE_TAG}"'" }' > sign_docker.json
+          jf evd create-evidence \
+            --predicate ./sign_docker.json \
+            --predicate-type https://jfrog.com/evidence/build-signature/v1 \
+            --build-name "${buildname}" \
+            --build-number "${buildnumber}" \
+            --project "${PROJECT_KEY}" \
+            --key "$(cat evidence_private_key.pem)" \
+            --key-alias "$EVIDENCE_KEY_ALIAS"
+          echo '🔎 Docker image Evidence attached: `build-signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
+
+      - name: Index Build Info in Xray (Docker)
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
+          echo "Checking if build '${buildname}' is indexed in Xray..."
+          jf xr curl "api/v1/binMgr/default/builds?projectKey=${PROJECT_KEY}" > builds_status.json
+          IS_NON_INDEXED=$(jq --arg bn "${buildname}" '.non_indexed_builds | index($bn) != null' builds_status.json)
+          if [ "$IS_NON_INDEXED" = "true" ]; then
+            echo "Build '${buildname}' is not indexed. Indexing it now..."
+            jq --arg bn "${buildname}" '
+              .non_indexed_builds |= map(select(. != $bn)) |
+              .indexed_builds |= (. + [$bn])
+            ' builds_status.json > updated_builds.json
+            jf xr curl -X PUT "api/v1/binMgr/default/builds?projectKey=${PROJECT_KEY}" -H "Content-Type: application/json" -d @updated_builds.json
+            echo "Build '${buildname}' has been indexed."
+          else
+            echo "Build '${buildname}' is already indexed or does not exist in non-indexed list."
+          fi
+
+      - name: Scan Docker build with JFrog Xray
+        run: |
+          jf build-scan --format=json "${buildname}" "${buildnumber}" --project "${PROJECT_KEY}"
+
   create-app-version:
     needs: build-and-publish
     runs-on: ubuntu-latest
@@ -235,6 +352,7 @@ jobs:
           set +e
           jf apptrust version-create "$APPLICATION_KEY" "$APP_VERSION" \
             --source-type-builds "name=$BUILD_NAME, id=$BUILD_NUMBER" \
+            --project $PROJECT_KEY \
             --sync 2>&1 | tee version_create_out.txt
           RV=$?
           set -e

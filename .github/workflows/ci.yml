@@ -14,7 +14,8 @@ jobs:
     env:
       BUILD_NAME: nba-app-ci
       build_number: ${{ github.run_number }}
-      PROJECT_KEY: ${{ vars.PROJECT_KEY }} 
+      PROJECT_KEY: ${{ vars.PROJECT_KEY }}
+      DOCKER_REPO_NAME: rsa-demo-docker-local 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -187,34 +188,9 @@ jobs:
         run: |
           jf evd --help
 
-  docker-build:
-    needs: build-and-publish
-    runs-on: ubuntu-latest
-    env:
-      BUILD_NAME: nba-app-ci
-      buildnumber: ${{ github.run_number }}
-      buildname: nba-app-ci
-      PROJECT_KEY: ${{ vars.PROJECT_KEY }}
-      DOCKER_REPO_NAME: rsa-demo-docker-local
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JFrog CLI
-        uses: JFROG/setup-jfrog-cli@v4.8.0
-        env:
-          JF_URL: ${{ secrets.JF_URL }}
-        with:
-          version: '2.96.0'
-          oidc-provider-name: omriz-oidc
-          oidc-audience: omriz-oidc
-
-      - name: Capture version and image tag
-        id: version
+      - name: Capture Docker image tag
         run: |
-          POC_STARTER_VERSION=$(jq -r '.version' package.json)
-          echo "POC_STARTER_VERSION=$POC_STARTER_VERSION" >> $GITHUB_ENV
-          echo "IMAGE_TAG=${POC_STARTER_VERSION}-b${buildnumber}" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$NPM_PACKAGE_BUILD_VERSION-b${build_number}" >> $GITHUB_ENV
 
       - name: Enable Buildx
         run: |
@@ -234,34 +210,28 @@ jobs:
         id: build
         env:
           JF_URL: ${{ secrets.JF_URL }}
-          buildnumber: ${{ env.buildnumber }}
-          buildname: ${{ env.buildname }}
-          env.PROJECT_KEY: ${{ env.PROJECT_KEY }}
-          DOCKER_REPO_NAME: ${{ env.DOCKER_REPO_NAME }}
-          POC_STARTER_VERSION: ${{ env.POC_STARTER_VERSION }}
-          JFROG_CLI_BUILD_NUMBER: ${{ env.buildnumber }}
         run: |
           JF_HOST="${JF_URL#https://}"
           docker buildx build --no-cache --provenance=false --push \
             --metadata-file=build-metadata \
             --platform linux/arm64,linux/amd64 \
-            --label build.number="${buildnumber}" \
-            --label build.name="${buildname}" \
+            --label build.number="${build_number}" \
+            --label build.name="${BUILD_NAME}" \
             --label project.name="${PROJECT_KEY}" \
             --label author="${{ github.actor }}" \
-            -t "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${POC_STARTER_VERSION}-b${JFROG_CLI_BUILD_NUMBER}" \
+            -t "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}" \
             -f Dockerfile .
 
       - name: Publish Docker build info to JFrog Artifactory
         run: |
           jf rt build-docker-create "/${DOCKER_REPO_NAME}" --image-file=build-metadata \
-            --build-name="${buildname}" \
-            --build-number="${buildnumber}" \
+            --build-name="${BUILD_NAME}" \
+            --build-number="${build_number}" \
             --project="${PROJECT_KEY}"
 
       - name: Publish build to Artifactory (with Docker image)
         run: |
-          jf rt build-publish "${buildname}" "${buildnumber}" --project "${PROJECT_KEY}"
+          jf rt build-publish "${BUILD_NAME}" "${build_number}" --project "${PROJECT_KEY}"
 
       - name: Sign Docker image evidence 🐸
         env:
@@ -274,8 +244,8 @@ jobs:
           jf evd create-evidence \
             --predicate ./sign_docker.json \
             --predicate-type https://jfrog.com/evidence/build-signature/v1 \
-            --build-name "${buildname}" \
-            --build-number "${buildnumber}" \
+            --build-name "${BUILD_NAME}" \
+            --build-number "${build_number}" \
             --project "${PROJECT_KEY}" \
             --key "$(cat evidence_private_key.pem)" \
             --key-alias "$EVIDENCE_KEY_ALIAS"
@@ -284,24 +254,24 @@ jobs:
       - name: Index Build Info in Xray (Docker)
         run: |
           sudo apt-get update && sudo apt-get install -y jq
-          echo "Checking if build '${buildname}' is indexed in Xray..."
+          echo "Checking if build '${BUILD_NAME}' is indexed in Xray..."
           jf xr curl "api/v1/binMgr/default/builds?projectKey=${PROJECT_KEY}" > builds_status.json
-          IS_NON_INDEXED=$(jq --arg bn "${buildname}" '.non_indexed_builds | index($bn) != null' builds_status.json)
+          IS_NON_INDEXED=$(jq --arg bn "${BUILD_NAME}" '.non_indexed_builds | index($bn) != null' builds_status.json)
           if [ "$IS_NON_INDEXED" = "true" ]; then
-            echo "Build '${buildname}' is not indexed. Indexing it now..."
-            jq --arg bn "${buildname}" '
+            echo "Build '${BUILD_NAME}' is not indexed. Indexing it now..."
+            jq --arg bn "${BUILD_NAME}" '
               .non_indexed_builds |= map(select(. != $bn)) |
               .indexed_builds |= (. + [$bn])
             ' builds_status.json > updated_builds.json
             jf xr curl -X PUT "api/v1/binMgr/default/builds?projectKey=${PROJECT_KEY}" -H "Content-Type: application/json" -d @updated_builds.json
-            echo "Build '${buildname}' has been indexed."
+            echo "Build '${BUILD_NAME}' has been indexed."
           else
-            echo "Build '${buildname}' is already indexed or does not exist in non-indexed list."
+            echo "Build '${BUILD_NAME}' is already indexed or does not exist in non-indexed list."
           fi
 
       - name: Scan Docker build with JFrog Xray
         run: |
-          jf build-scan --format=json "${buildname}" "${buildnumber}" --project "${PROJECT_KEY}"
+          jf build-scan --format=json "${BUILD_NAME}" "${build_number}" --project "${PROJECT_KEY}"
 
   create-app-version:
     needs: build-and-publish

@@ -46,6 +46,17 @@ jobs:
       - name: Install dependencies with JFrog CLI
         run: |
           jf npm install --build-name "$BUILD_NAME" --build-number "$build_number" --project $PROJECT_KEY
+      - name: Build Next.js app
+        run: npm run build
+      - name: Upload Next.js build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-build
+          include-hidden-files: true
+          path: |
+            .next/standalone
+            .next/static
+            public
       - name: Publish npm package to JFrog Artifactory
         run: |
           jf npm publish --build-name "$BUILD_NAME" --build-number "$build_number" --project $PROJECT_KEY
@@ -198,6 +209,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Download Next.js build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: next-build
+          path: next-build
       - name: Set up JFrog CLI
         uses: JFROG/setup-jfrog-cli@v4.8.0
         env:
@@ -229,7 +245,10 @@ jobs:
           JF_URL: ${{ secrets.JF_URL }}
         run: |
           JF_HOST="${JF_URL#https://}"
-          docker buildx build --no-cache --provenance=false --push \
+          CACHE_REF="${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:buildcache"
+          docker buildx build --provenance=false --push \
+            --cache-from type=registry,ref="${CACHE_REF}" \
+            --cache-to type=registry,ref="${CACHE_REF}",mode=max \
             --metadata-file=build-metadata \
             --platform linux/arm64,linux/amd64 \
             --label build.number="${build_number}" \
@@ -237,7 +256,7 @@ jobs:
             --label project.name="${PROJECT_KEY}" \
             --label author="${{ github.actor }}" \
             -t "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}" \
-            -f Dockerfile .
+            -f Dockerfile.prebuilt next-build
       - name: Publish Docker build info to JFrog Artifactory
         run: |
           jf rt build-docker-create "/${DOCKER_REPO_NAME}" --image-file=build-metadata \
@@ -317,7 +336,7 @@ jobs:
       - name: "[Ensure] AppTrust application exists"
         run: |
           set +e
-          jf apptrust app-create "$APPLICATION_KEY" --application-name "NBA App" 2>&1 | tee app_create_out.txt
+          jf apptrust app-create "$APPLICATION_KEY" --application-name "NBA App" --project "$PROJECT_KEY" 2>&1 | tee app_create_out.txt
           RV=$?
           set -e
           if [[ $RV -eq 0 ]]; then
@@ -332,18 +351,19 @@ jobs:
         run: |
           set +e
           jf apptrust version-create "$APPLICATION_KEY" "$APP_VERSION" \
-            --source-type-builds "name=nba-app-ci, id=$BUILD_NUMBER" \
-            --source-type-builds "name=nba-app-ci-docker, id=$BUILD_NUMBER" \
-            --project $PROJECT_KEY \
+            --source-type-builds "name=nba-app-ci,id=$BUILD_NUMBER" \
+            --source-type-builds "name=nba-app-ci-docker,id=$BUILD_NUMBER" \
+            --project "$PROJECT_KEY" \
             --sync 2>&1 | tee version_create_out.txt
           RV=$?
           set -e
           if [[ $RV -ne 0 ]] && grep -q "could not find application" version_create_out.txt 2>/dev/null; then
             echo "Application was missing; creating it and retrying version-create..."
-            jf apptrust app-create "$APPLICATION_KEY" --application-name "NBA App"
+            jf apptrust app-create "$APPLICATION_KEY" --application-name "NBA App" --project "$PROJECT_KEY"
             jf apptrust version-create "$APPLICATION_KEY" "$APP_VERSION" \
-              --source-type-builds "name=nba-app-ci, id=$BUILD_NUMBER" \
-              --source-type-builds "name=nba-app-ci-docker, id=$BUILD_NUMBER" \
+              --source-type-builds "name=nba-app-ci,id=$BUILD_NUMBER" \
+              --source-type-builds "name=nba-app-ci-docker,id=$BUILD_NUMBER" \
+              --project "$PROJECT_KEY" \
               --sync
           elif [[ $RV -ne 0 ]]; then
             cat version_create_out.txt
@@ -456,5 +476,5 @@ jobs:
         run: |
           set -euo pipefail
           echo "Promoting $APPLICATION_KEY@$APP_VERSION to DEV..."
-          jf apptrust version-promote "$APPLICATION_KEY" "$APP_VERSION" DEV --promotion-type move --sync
+          jf apptrust version-promote "$APPLICATION_KEY" "$APP_VERSION" DEV --promotion-type move --project "$PROJECT_KEY" --sync
           echo "✅ Application version promoted to DEV: $APPLICATION_KEY@$APP_VERSION"

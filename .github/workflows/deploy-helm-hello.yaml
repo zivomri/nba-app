@@ -1,0 +1,67 @@
+# Deploy Helm "hello world" chart to GKE.
+#
+# Required GitHub Secrets (Settings > Secrets and variables > Actions):
+#   GCP_SA_KEY              - GCP service account JSON key (entire key file content)
+#   GCP_PROJECT_ID          - GCP project ID
+#   GCP_REGION              - GKE cluster region (e.g. us-central1); for zonal use GCP_ZONE instead
+#   GKE_CLUSTER_NAME        - GKE cluster name
+#   HELM_NAMESPACE          - Kubernetes namespace for the Helm release
+#
+# Optional (for zonal clusters): add secret GCP_ZONE (e.g. us-central1-a) and set GCP_REGION to empty.
+name: Deploy Helm Hello World to GKE
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Get GKE credentials
+        run: |
+          PROJECT_ID="${{ secrets.GCP_PROJECT_ID }}"
+          CLUSTER_NAME="${{ secrets.GKE_CLUSTER_NAME }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          ZONE="${{ secrets.GCP_ZONE }}"
+          if [[ -n "$ZONE" ]]; then
+            gcloud container clusters get-credentials "$CLUSTER_NAME" --zone "$ZONE" --project "$PROJECT_ID"
+          else
+            gcloud container clusters get-credentials "$CLUSTER_NAME" --region "$REGION" --project "$PROJECT_ID"
+          fi
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "v3.14.0"
+
+      - name: Deploy Helm chart
+        run: |
+          RELEASE_NAME="hello-world"
+          CHART_PATH="./helm/hello-world"
+          NAMESPACE="${{ secrets.HELM_NAMESPACE }}"
+          helm upgrade --install "$RELEASE_NAME" "$CHART_PATH" \
+            --namespace "$NAMESPACE" \
+            --create-namespace \
+            --wait \
+            --timeout 5m

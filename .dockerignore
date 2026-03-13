@@ -1,0 +1,34 @@
+# Dependencies (installed in container)
+node_modules
+.pnp
+.pnp.js
+
+# Build output
+.next
+out
+build
+
+# Git and IDE
+.git
+.gitignore
+.dockerignore
+.cursor
+*.md
+.env*
+.DS_Store
+
+# Debug and logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test and coverage
+coverage
+.nyc_output
+*.test.*
+*.spec.*
+
+# Misc
+.vercel
+private.pem
+public.pem

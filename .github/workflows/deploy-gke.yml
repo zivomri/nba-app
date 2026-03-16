@@ -63,6 +63,10 @@ jobs:
           PROJECT_KEY='${{ steps.get-version-content.outputs.project_key }}'
           jf rt curl "/api/build/${BUILD_NAME}/${BUILD_NUMBER}?project=${PROJECT_KEY}" -s | jq . > build-info.json
           DOCKER_IMAGE_TAG=$(jq -r '.buildInfo.modules[0].properties["docker.image.tag"]' build-info.json)
+          # Build info may contain full image reference; use only the tag (after last colon)
+          if [[ "$DOCKER_IMAGE_TAG" == *:* ]]; then
+            DOCKER_IMAGE_TAG="${DOCKER_IMAGE_TAG##*:}"
+          fi
           echo "Docker image tag: $DOCKER_IMAGE_TAG"
           echo "imagetag=$DOCKER_IMAGE_TAG" >> $GITHUB_OUTPUT
 

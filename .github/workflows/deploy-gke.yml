@@ -17,7 +17,7 @@ on:
       - main
   workflow_dispatch:
   repository_dispatch:
-    types: [my-custom-event]
+    types: [jfrog-apptrust-release]
 
 permissions:
   id-token: write
@@ -27,6 +27,12 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Print repository_dispatch payload
+        if: github.event_name == 'repository_dispatch'
+        run: |
+          echo 'Repository dispatch payload (client_payload):'
+          echo '${{ toJSON(github.event.client_payload) }}' | jq .
+
       - name: Checkout repository
         uses: actions/checkout@v4
 

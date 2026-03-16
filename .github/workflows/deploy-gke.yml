@@ -122,16 +122,13 @@ jobs:
         run: |
           NAMESPACE="${{ secrets.HELM_NAMESPACE }}"
           kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
-          if ! kubectl get secret jfrog-registry-secret -n "$NAMESPACE" &>/dev/null; then
-            kubectl create secret docker-registry jfrog-registry-secret \
-              --docker-server=solenglatest.jfrog.io \
-              --docker-username="${{ secrets.JF_USERNAME }}" \
-              --docker-password="${{ secrets.JF_ACCESS_TOKEN }}" \
-              --namespace "$NAMESPACE"
-            echo "Created jfrog-registry-secret"
-          else
-            echo "jfrog-registry-secret already exists, skipping"
-          fi
+          kubectl delete secret jfrog-registry-secret -n "$NAMESPACE" --ignore-not-found
+          kubectl create secret docker-registry jfrog-registry-secret \
+            --docker-server=solenglatest.jfrog.io \
+            --docker-username="${{ secrets.JF_USERNAME }}" \
+            --docker-password="${{ secrets.JF_ACCESS_TOKEN }}" \
+            --namespace "$NAMESPACE"
+          echo "Created/updated jfrog-registry-secret"
 
       - name: Deploy Helm chart
         run: |

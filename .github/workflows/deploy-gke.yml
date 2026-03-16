@@ -56,6 +56,7 @@ jobs:
           oidc-audience: omriz-oidc
       - name: Get build info and print Docker image tag
         if: github.event_name == 'repository_dispatch'
+        id: get-build-info
         run: |
           BUILD_NAME='${{ github.event.client_payload.app_key }}-ci-docker'
           BUILD_NUMBER='${{ steps.get-version-content.outputs.build_number }}'
@@ -63,6 +64,7 @@ jobs:
           jf rt curl "/api/build/${BUILD_NAME}/${BUILD_NUMBER}?project=${PROJECT_KEY}" -s | jq . > build-info.json
           DOCKER_IMAGE_TAG=$(jq -r '.buildInfo.modules[0].properties["docker.image.tag"]' build-info.json)
           echo "Docker image tag: $DOCKER_IMAGE_TAG"
+          echo "imagetag=$DOCKER_IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -92,18 +94,43 @@ jobs:
             gcloud container clusters get-credentials "$CLUSTER_NAME" --region "$REGION" --project "$PROJECT_ID"
           fi
 
+      - name: Set image tag for deploy
+        id: image-tag
+        run: |
+          TAG="${{ steps.get-build-info.outputs.imagetag }}"
+          if [ -z "$TAG" ]; then TAG=latest; fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Using image tag: $TAG"
+
       - name: Install Helm
         uses: azure/setup-helm@v4
         with:
           version: "v3.14.0"
 
+      - name: Create image pull secret for JFrog
+        run: |
+          NAMESPACE="${{ secrets.HELM_NAMESPACE }}"
+          kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+          if ! kubectl get secret jfrog-registry-secret -n "$NAMESPACE" &>/dev/null; then
+            kubectl create secret docker-registry jfrog-registry-secret \
+              --docker-server=solenglatest.jfrog.io \
+              --docker-username=oauth2 \
+              --docker-password="${{ secrets.JF_ACCESS_TOKEN }}" \
+              --namespace "$NAMESPACE"
+            echo "Created jfrog-registry-secret"
+          else
+            echo "jfrog-registry-secret already exists, skipping"
+          fi
+
       - name: Deploy Helm chart
         run: |
-          RELEASE_NAME="hello-world"
-          CHART_PATH="./helm/hello-world"
+          RELEASE_NAME="nba-app"
+          CHART_PATH="./helm/nba-app"
           NAMESPACE="${{ secrets.HELM_NAMESPACE }}"
+          IMAGE_TAG="${{ steps.image-tag.outputs.tag }}"
           helm upgrade --install "$RELEASE_NAME" "$CHART_PATH" \
             --namespace "$NAMESPACE" \
             --create-namespace \
+            --set image.tag="$IMAGE_TAG" \
             --wait \
             --timeout 5m

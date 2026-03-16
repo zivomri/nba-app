@@ -1,0 +1,14 @@
+replicaCount: 1
+
+image:
+  repository: solenglatest.jfrog.io/rsa-demo-docker-local/nba-app
+  tag: ""  # Set by workflow from build info (e.g. --set image.tag=...)
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: jfrog-registry-secret
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000

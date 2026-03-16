@@ -10,8 +10,12 @@
 #   GCP_SERVICE_ACCOUNT               - GCP service account email (e.g. my-sa@my-project.iam.gserviceaccount.com)
 #   JF_URL                            - JFrog platform URL (e.g. https://your-instance.jfrog.io)
 #   JF_ACCESS_TOKEN                   - JFrog access token (Bearer for AppTrust API; used by JFrog CLI)
+#   JF_USERNAME                       - JFrog/Artifactory username (for Docker image pull secret; token is used as password)
+#   JF_RUNTIME_REGISTRATION_TOKEN    - JFrog Runtime (sensors) registration token for the cluster
 #
 # Optional: GCP_ZONE for zonal clusters (e.g. us-central1-a); then get-credentials uses --zone instead of --region.
+# Note: If image pull fails with 401, ensure JF_USERNAME and JF_ACCESS_TOKEN are set and delete the existing
+#       jfrog-registry-secret in the namespace so the next run recreates it with correct credentials.
 name: Deploy to GKE (Workload Identity)
 
 on:
@@ -111,6 +115,19 @@ jobs:
         with:
           version: "v3.14.0"
 
+      - name: Setup JFrog Runtime on the cluster
+        run: |
+          NAMESPACE="${{ secrets.HELM_NAMESPACE }}"
+          kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+          helm repo add jfrog https://charts.jfrog.io
+          helm repo update jfrog
+          helm upgrade --install jf-sensors jfrog/runtime-sensors \
+            --namespace "$NAMESPACE" \
+            --set sensors.enabled=true \
+            --set clusterName="$NAMESPACE" \
+            --set jfrogUrl=solenglatest.jfrog.io:443 \
+            --set registrationToken="${{ secrets.JF_RUNTIME_REGISTRATION_TOKEN }}"
+
       - name: Create image pull secret for JFrog
         run: |
           NAMESPACE="${{ secrets.HELM_NAMESPACE }}"
@@ -118,7 +135,7 @@ jobs:
           if ! kubectl get secret jfrog-registry-secret -n "$NAMESPACE" &>/dev/null; then
             kubectl create secret docker-registry jfrog-registry-secret \
               --docker-server=solenglatest.jfrog.io \
-              --docker-username=oauth2 \
+              --docker-username="${{ secrets.JF_USERNAME }}" \
               --docker-password="${{ secrets.JF_ACCESS_TOKEN }}" \
               --namespace "$NAMESPACE"
             echo "Created jfrog-registry-secret"

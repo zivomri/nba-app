@@ -1,4 +1,5 @@
 # Deploy to GKE using Workload Identity Federation (no service account keys).
+# Triggered only by workflow_dispatch or repository_dispatch (e.g. JFrog AppTrust release webhook).
 #
 # Required GitHub Secrets (Settings > Secrets and variables > Actions):
 #   GCP_PROJECT_ID                    - GCP project ID
@@ -7,21 +8,20 @@
 #   HELM_NAMESPACE                    - Kubernetes namespace for the Helm release
 #   GCP_WORKLOAD_IDENTITY_PROVIDER    - WIF provider resource name (e.g. projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL/providers/PROVIDER)
 #   GCP_SERVICE_ACCOUNT               - GCP service account email (e.g. my-sa@my-project.iam.gserviceaccount.com)
+#   JF_URL                            - JFrog platform URL (e.g. https://your-instance.jfrog.io)
+#   JF_ACCESS_TOKEN                   - JFrog access token (Bearer for AppTrust API; used by JFrog CLI)
 #
 # Optional: GCP_ZONE for zonal clusters (e.g. us-central1-a); then get-credentials uses --zone instead of --region.
 name: Deploy to GKE (Workload Identity)
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
   repository_dispatch:
     types: [jfrog-apptrust-release]
 
 permissions:
   id-token: write
-  contents: read
+  contents: write
 
 jobs:
   deploy:
@@ -32,6 +32,38 @@ jobs:
         run: |
           echo 'Repository dispatch payload (client_payload):'
           echo '${{ toJSON(github.event.client_payload) }}' | jq .
+
+      - name: Get app version content (AppTrust API)
+        if: github.event_name == 'repository_dispatch'
+        id: get-version-content
+        run: |
+          APP_KEY='${{ github.event.client_payload.app_key }}'
+          VERSION='${{ github.event.client_payload.version }}'
+          RESP=$(curl -sS -H "Authorization: Bearer ${{ secrets.JF_ACCESS_TOKEN }}" \
+            "${{ secrets.JF_URL }}/apptrust/api/v1/applications/${APP_KEY}/versions/${VERSION}/content?include=sources")
+          BUILD_NUMBER=$(echo "$RESP" | jq -r --arg app "$APP_KEY" '.sources[] | select(.type=="build" and .build.name == ($app + "-ci-docker")) | .build.number' | head -1)
+          PROJECT_KEY=$(echo "$RESP" | jq -r '.project_key')
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "project_key=$PROJECT_KEY" >> $GITHUB_OUTPUT
+
+      - name: Set up JFrog CLI
+        if: github.event_name == 'repository_dispatch'
+        uses: JFROG/setup-jfrog-cli@v4.8.0
+        env:
+          JF_URL: ${{ secrets.JF_URL }}
+        with:
+          version: '2.96.0'
+          oidc-provider-name: omriz-oidc
+
+      - name: Get build info and print Docker image tag
+        if: github.event_name == 'repository_dispatch'
+        run: |
+          BUILD_NAME='${{ github.event.client_payload.app_key }}-ci-docker'
+          BUILD_NUMBER='${{ steps.get-version-content.outputs.build_number }}'
+          PROJECT_KEY='${{ steps.get-version-content.outputs.project_key }}'
+          jf rt curl "/api/build/${BUILD_NAME}/${BUILD_NUMBER}?project=${PROJECT_KEY}" -s | jq . > build-info.json
+          DOCKER_IMAGE_TAG=$(jq -r '.buildInfo.modules[0].properties["docker.image.tag"]' build-info.json)
+          echo "Docker image tag: $DOCKER_IMAGE_TAG"
 
       - name: Checkout repository
         uses: actions/checkout@v4

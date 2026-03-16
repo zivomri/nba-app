@@ -1,5 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# macOS
+.DS_Store
+
 # dependencies
 /node_modules
 
@@ -27,3 +30,7 @@ next-env.d.ts
 
 private.pem
 public.pem
+
+# local docs (WIF explanation, not committed)
+docs/wif-gke-explained.md
+docs/wif-gke-explained-he.md

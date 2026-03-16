@@ -16,6 +16,8 @@ on:
     branches:
       - main
   workflow_dispatch:
+  repository_dispatch:
+    types: [my-custom-event]
 
 permissions:
   id-token: write

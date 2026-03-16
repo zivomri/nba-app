@@ -45,16 +45,15 @@ jobs:
           PROJECT_KEY=$(echo "$RESP" | jq -r '.project_key')
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
           echo "project_key=$PROJECT_KEY" >> $GITHUB_OUTPUT
-
       - name: Set up JFrog CLI
-        if: github.event_name == 'repository_dispatch'
         uses: JFROG/setup-jfrog-cli@v4.8.0
+        id: jfrog_cli
         env:
           JF_URL: ${{ secrets.JF_URL }}
         with:
           version: '2.96.0'
           oidc-provider-name: omriz-oidc
-
+          oidc-audience: omriz-oidc
       - name: Get build info and print Docker image tag
         if: github.event_name == 'repository_dispatch'
         run: |

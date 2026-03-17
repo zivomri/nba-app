@@ -82,34 +82,16 @@ jobs:
         run: |
           mkdir -p results-javascript
           if [[ ! -f results-javascript/javascript.sarif ]]; then
-            cat > results-javascript/javascript.sarif <<'          SARIF'
-          {
-            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
-            "version": "2.1.0",
-            "runs": [{
-              "tool": {
-                "driver": {
-                  "name": "CodeQL",
-                  "version": "2.0.0",
-                  "informationUri": "https://codeql.github.com",
-                  "rules": []
-                }
-              },
-              "results": []
-            }]
-          }
-          SARIF
+            echo '{"$schema":"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json","version":"2.1.0","runs":[{"tool":{"driver":{"name":"CodeQL","version":"2.0.0","informationUri":"https://codeql.github.com","rules":[]}},"results":[]}]}' > results-javascript/javascript.sarif
           fi
           if [[ ! -f results-javascript/javascript-report.md ]]; then
-            cat > results-javascript/javascript-report.md <<'          EOF'
-          # CodeQL JavaScript / Static Analysis Report
-
-          Dummy report for GitHub Evidence (NPM). Replace with real CodeQL output when available.
-
-          - **Run**: ${{ github.run_id }}
-          - **Workflow**: ${{ github.workflow }}
-          - **Repository**: ${{ github.repository }}
-          EOF
+            echo "# CodeQL JavaScript / Static Analysis Report" > results-javascript/javascript-report.md
+            echo "" >> results-javascript/javascript-report.md
+            echo "Dummy report for GitHub Evidence (NPM). Replace with real CodeQL output when available." >> results-javascript/javascript-report.md
+            echo "" >> results-javascript/javascript-report.md
+            echo "- **Run**: ${{ github.run_id }}" >> results-javascript/javascript-report.md
+            echo "- **Workflow**: ${{ github.workflow }}" >> results-javascript/javascript-report.md
+            echo "- **Repository**: ${{ github.repository }}" >> results-javascript/javascript-report.md
           fi
       - name: Add Gituhb Evidence NPM 🐸
         env:

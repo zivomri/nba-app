@@ -79,20 +79,7 @@ jobs:
             --predicate-type https://jfrog.com/evidence/signature/v1
           echo '🔎 NPM build Evidence attached: `signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
       - name: Generate dummy CodeQL evidence files (NPM)
-        run: |
-          mkdir -p results-javascript
-          if [[ ! -f results-javascript/javascript.sarif ]]; then
-            echo '{"$schema":"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json","version":"2.1.0","runs":[{"tool":{"driver":{"name":"CodeQL","version":"2.0.0","informationUri":"https://codeql.github.com","rules":[]}},"results":[]}]}' > results-javascript/javascript.sarif
-          fi
-          if [[ ! -f results-javascript/javascript-report.md ]]; then
-            echo "# CodeQL JavaScript / Static Analysis Report" > results-javascript/javascript-report.md
-            echo "" >> results-javascript/javascript-report.md
-            echo "Dummy report for GitHub Evidence (NPM). Replace with real CodeQL output when available." >> results-javascript/javascript-report.md
-            echo "" >> results-javascript/javascript-report.md
-            echo "- **Run**: ${{ github.run_id }}" >> results-javascript/javascript-report.md
-            echo "- **Workflow**: ${{ github.workflow }}" >> results-javascript/javascript-report.md
-            echo "- **Repository**: ${{ github.repository }}" >> results-javascript/javascript-report.md
-          fi
+        run: bash .github/scripts/generate-dummy-codeql-evidence.sh
       - name: Add Gituhb Evidence NPM 🐸
         env:
           EVIDENCE_PRIVATE_KEY: ${{ secrets.EVIDENCE_PRIVATE_KEY }}
@@ -113,6 +100,28 @@ jobs:
             --provider-id "github" \
             --markdown results-javascript/javascript-report.md
           echo '🔎 GitHub CodeQL Evidence attached (NPM) 🐸' >> $GITHUB_STEP_SUMMARY
+      - name: Generate dummy Cypress evidence files (NPM)
+        run: bash .github/scripts/generate-dummy-cypress-evidence.sh
+      - name: Add Cypress Evidence NPM 🐸
+        env:
+          EVIDENCE_PRIVATE_KEY: ${{ secrets.EVIDENCE_PRIVATE_KEY }}
+          EVIDENCE_KEY_ALIAS: ${{ secrets.EVIDENCE_KEY_ALIAS }}
+        run: |
+          printf '%s\n' "$EVIDENCE_PRIVATE_KEY" > evidence_private_key.pem
+          chmod 600 evidence_private_key.pem
+          PACKAGE_NAME=$(jq -r '.name' package.json)
+          PACKAGE_VERSION=$(jq -r '.version' package.json)
+          jf evd create-evidence \
+            --package-name "$PACKAGE_NAME" \
+            --package-version "$PACKAGE_VERSION" \
+            --package-repo-name $PROJECT_KEY-npm \
+            --key "$(cat evidence_private_key.pem)" \
+            --key-alias "$EVIDENCE_KEY_ALIAS" \
+            --predicate reports/overall-report.json \
+            --predicate-type "http://cypress.io/test-results/v1" \
+            --provider-id "cypress" \
+            --markdown reports/cypress-results.md
+          echo '🔎 Cypress Evidence attached (NPM) 🐸' >> $GITHUB_STEP_SUMMARY
       - name: Collect build environment info
         run: |
           jf rt build-collect-env "$BUILD_NAME" "$build_number" --project $PROJECT_KEY
@@ -156,7 +165,7 @@ jobs:
             
             jf xr curl -X PUT "api/v1/binMgr/default/builds?projectKey=$PROJECT_KEY" -H "Content-Type: application/json" -d @updated_builds.json
             echo "Build '$BUILD_NAME' has been indexed."
-              else
+              else sp
             echo "Build '$BUILD_NAME' is already indexed or does not exist in non-indexed list."
           fi
       - name: Scan Build Info with JFrog Xray
@@ -318,6 +327,29 @@ jobs:
             --key "$(cat evidence_private_key.pem)" \
             --key-alias "$EVIDENCE_KEY_ALIAS"
           echo '🔎 Docker image Evidence attached: `build-signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
+      - name: Generate dummy BlazeMeter evidence files (Docker)
+        run: bash .github/scripts/generate-dummy-blazemeter-evidence.sh
+      - name: Add BlazeMeter Evidence Docker 🐸
+        env:
+          EVIDENCE_PRIVATE_KEY: ${{ secrets.EVIDENCE_PRIVATE_KEY }}
+          EVIDENCE_KEY_ALIAS: ${{ secrets.EVIDENCE_KEY_ALIAS }}
+        run: |
+          printf '%s\n' "$EVIDENCE_PRIVATE_KEY" > evidence_private_key.pem
+          chmod 600 evidence_private_key.pem
+          IMAGE_NAME="nba-app"
+          TAG_NAME="${IMAGE_TAG}"
+          REPO_NAME="${DOCKER_REPO_NAME}"
+          jf evd create-evidence \
+            --package-name "$IMAGE_NAME" \
+            --package-version "$TAG_NAME" \
+            --package-repo-name "$REPO_NAME" \
+            --key "$(cat evidence_private_key.pem)" \
+            --key-alias "$EVIDENCE_KEY_ALIAS" \
+            --predicate blazemeter-predicate.json \
+            --predicate-type "http://blazemeter.com/performance-results/v1" \
+            --provider-id "blazemeter" \
+            --markdown blazemeter-results.md
+          echo '🔎 BlazeMeter Evidence attached (Docker) 🐸' >> $GITHUB_STEP_SUMMARY
       - name: Index Build Info in Xray (Docker)
         run: |
           sudo apt-get update && sudo apt-get install -y jq

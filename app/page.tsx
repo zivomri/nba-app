@@ -123,6 +123,17 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <section aria-label="App banner" className="w-full overflow-hidden bg-muted">
+        <img
+          src="/images/nba-app-logo.jpg"
+          alt="NBA App"
+          className="w-full h-auto object-cover object-center max-h-60"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement
+            target.style.display = "none"
+          }}
+        />
+      </section>
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-6">
           <div className="text-center space-y-4">

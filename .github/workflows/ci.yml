@@ -485,8 +485,8 @@ jobs:
             --markdown jira.md \
             --predicate-type "https://atlassian.com/evidence/jira/release/v1" \
             --provider-id "jira" \
-            --release-bundle "$APPLICATION_KEY" \
-            --release-bundle-version "$APP_VERSION" \
+            --application-key "$APPLICATION_KEY" \
+            --application-version "$APP_VERSION" \
             --project "$PROJECT_KEY" \
             --key "$(cat evidence_private_key.pem)" \
             --key-alias "$EVIDENCE_KEY_ALIAS" || echo "⚠️ Jira evidence attach failed"

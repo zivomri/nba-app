@@ -55,8 +55,8 @@ jobs:
           JF_URL: ${{ secrets.JF_URL }}
         with:
           version: '2.96.0'
-          oidc-provider-name: omriz-oidc
-          oidc-audience: omriz-oidc
+          oidc-provider-name: jfrog-org
+          oidc-audience: jfrog-org
       - name: Get build info and print Docker image tag
         if: github.event_name == 'repository_dispatch'
         id: get-build-info

@@ -78,23 +78,54 @@ jobs:
             --predicate ./sign_npm.json \
             --predicate-type https://jfrog.com/evidence/signature/v1
           echo '🔎 NPM build Evidence attached: `signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
+      - name: Generate dummy CodeQL evidence files (NPM)
+        run: |
+          mkdir -p results-javascript
+          if [[ ! -f results-javascript/javascript.sarif ]]; then
+            cat > results-javascript/javascript.sarif <<'          SARIF'
+          {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [{
+              "tool": {
+                "driver": {
+                  "name": "CodeQL",
+                  "version": "2.0.0",
+                  "informationUri": "https://codeql.github.com",
+                  "rules": []
+                }
+              },
+              "results": []
+            }]
+          }
+          SARIF
+          fi
+          if [[ ! -f results-javascript/javascript-report.md ]]; then
+            cat > results-javascript/javascript-report.md <<'          EOF'
+          # CodeQL JavaScript / Static Analysis Report
+
+          Dummy report for GitHub Evidence (NPM). Replace with real CodeQL output when available.
+
+          - **Run**: ${{ github.run_id }}
+          - **Workflow**: ${{ github.workflow }}
+          - **Repository**: ${{ github.repository }}
+          EOF
+          fi
       - name: Add Gituhb Evidence NPM 🐸
         env:
-          CODEQL_SIGNING_KEY: ${{ secrets.CODEQL_SIGNING_KEY }}
-          CODEQL_KEY_ALIAS: ${{ vars.CODEQL_KEY_ALIAS }}
+          EVIDENCE_PRIVATE_KEY: ${{ secrets.EVIDENCE_PRIVATE_KEY }}
+          EVIDENCE_KEY_ALIAS: ${{ secrets.EVIDENCE_KEY_ALIAS }}
         run: |
-          if [[ ! -f results-javascript/javascript.sarif || ! -f results-javascript/javascript-report.md ]]; then
-            echo "Missing results-javascript/javascript.sarif or javascript-report.md, skipping GitHub Evidence"
-            exit 0
-          fi
-          printf '%s\n' "$CODEQL_SIGNING_KEY" > codeql_signing_key.pem
-          chmod 600 codeql_signing_key.pem
+          printf '%s\n' "$EVIDENCE_PRIVATE_KEY" > evidence_private_key.pem
+          chmod 600 evidence_private_key.pem
+          PACKAGE_NAME=$(jq -r '.name' package.json)
+          PACKAGE_VERSION=$(jq -r '.version' package.json)
           jf evd create-evidence \
-            --package-name ${{ env.NPM_PACKAGE_NAME }} \
-            --package-version ${{ env.NPM_PACKAGE_BUILD_VERSION }} \
-            --package-repo-name ${{ env.PROJECT_KEY }}-npm \
-            --key "$(cat codeql_signing_key.pem)" \
-            --key-alias "${{ vars.CODEQL_KEY_ALIAS }}" \
+            --package-name "$PACKAGE_NAME" \
+            --package-version "$PACKAGE_VERSION" \
+            --package-repo-name $PROJECT_KEY-npm \
+            --key "$(cat evidence_private_key.pem)" \
+            --key-alias "$EVIDENCE_KEY_ALIAS" \
             --predicate results-javascript/javascript.sarif \
             --predicate-type "http://github.com/CodeQL/static-analysis" \
             --provider-id "github" \

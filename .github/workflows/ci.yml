@@ -165,7 +165,7 @@ jobs:
             
             jf xr curl -X PUT "api/v1/binMgr/default/builds?projectKey=$PROJECT_KEY" -H "Content-Type: application/json" -d @updated_builds.json
             echo "Build '$BUILD_NAME' has been indexed."
-              else sp
+          else
             echo "Build '$BUILD_NAME' is already indexed or does not exist in non-indexed list."
           fi
       - name: Scan Build Info with JFrog Xray

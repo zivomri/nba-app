@@ -3,3 +3,6 @@ type: npm
 resolver:
     repo: rsa-demo-npm
     serverId: solenglatest
+deployer:
+    repo: rsa-demo-npm
+    serverId: solenglatest

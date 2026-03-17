@@ -39,15 +39,13 @@ jobs:
       - name: Configure NPM
         run: |
           jf npm-config --repo-deploy $PROJECT_KEY-npm --repo-resolve $PROJECT_KEY-npm
-      # Install before Curation Audit so Artifactory has packages in cache; jf ca sends HEAD
-      # requests (content-addressable URLs) and returns 404 when the repo cache is cold.
-      - name: Install dependencies with JFrog CLI
-        run: |
-          jf npm install --build-name "$BUILD_NAME" --build-number "$build_number" --project $PROJECT_KEY
       - name: Curation Audit
         run: |
           echo "Running JF Curation Audit"
           jf ca --format=table --threads=100
+      - name: Install dependencies with JFrog CLI
+        run: |
+          jf npm install --build-name "$BUILD_NAME" --build-number "$build_number" --project $PROJECT_KEY
       - name: Build Next.js app
         run: npm run build
       - name: Upload Next.js build artifacts

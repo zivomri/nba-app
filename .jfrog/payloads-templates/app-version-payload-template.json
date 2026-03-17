@@ -14,6 +14,12 @@
                 "number": "$BUILD_NUMBER",
                 "repository_key": "$PROJECT_KEY-build-info",
                 "include_dependencies": false
+            },
+            {
+                "name": "nba-app-ci-docker-helm",
+                "number": "$BUILD_NUMBER",
+                "repository_key": "$PROJECT_KEY-build-info",
+                "include_dependencies": false
             }
         ]
     }

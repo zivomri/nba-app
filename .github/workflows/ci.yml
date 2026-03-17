@@ -42,7 +42,7 @@ jobs:
       - name: Curation Audit
         run: |
           echo "will run something later"
-          # jf ca --format=table --threads=100
+          jf ca --format=table --threads=100
       - name: Install dependencies with JFrog CLI
         run: |
           jf npm install --build-name "$BUILD_NAME" --build-number "$build_number" --project $PROJECT_KEY

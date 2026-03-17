@@ -11,14 +11,10 @@
 #   JF_URL                            - JFrog platform URL (e.g. https://your-instance.jfrog.io)
 #   JF_ACCESS_TOKEN                   - JFrog access token (Bearer for AppTrust API; used by JFrog CLI)
 #   JF_USERNAME                       - JFrog/Artifactory username (for Docker image pull secret; token is used as password)
-#   JF_RUNTIME_REGISTRATION_TOKEN    - JFrog Runtime (sensors) registration token for the cluster
 #
 # Optional: GCP_ZONE for zonal clusters (e.g. us-central1-a); then get-credentials uses --zone instead of --region.
 # Note: If image pull fails with 401, ensure JF_USERNAME and JF_ACCESS_TOKEN are set and delete the existing
 #       jfrog-registry-secret in the namespace so the next run recreates it with correct credentials.
-# Note: JFrog Runtime (jf-sensors) step creates ClusterRoles/RoleBindings; the deploy SA may lack permission.
-#       If it fails, grant container.clusterRoles.create, container.clusterRoleBindings.create,
-#       container.roles.create, container.roleBindings.create to the SA, or install jf-sensors once with elevated credentials.
 name: Deploy to GKE (Workload Identity)
 
 on:
@@ -142,29 +138,3 @@ jobs:
             --set image.tag="$IMAGE_TAG" \
             --wait \
             --timeout 5m
-
-      - name: Ensure Runtime SA can read runtime-config ConfigMap
-        run: |
-          NAMESPACE="${{ secrets.HELM_NAMESPACE }}"
-          kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
-          sed "s/NAMESPACE_PLACEHOLDER/$NAMESPACE/g" .github/runtime-sa-configmap-rbac.yaml | kubectl apply -f -
-
-      - name: Setup JFrog Runtime on the cluster
-        id: setup-runtime
-        continue-on-error: true
-        run: |
-          NAMESPACE="${{ secrets.HELM_NAMESPACE }}"
-          kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
-          helm repo add jfrog https://charts.jfrog.io
-          helm repo update jfrog
-          helm upgrade --install jf-sensors jfrog/runtime-sensors \
-            --namespace "$NAMESPACE" \
-            --set sensors.enabled=true \
-            --set clusterName="$NAMESPACE" \
-            --set jfrogUrl=solenglatest.jfrog.io:443 \
-            --set registrationToken="${{ secrets.JF_RUNTIME_REGISTRATION_TOKEN }}"
-
-      - name: Warn if JFrog Runtime setup failed
-        if: steps.setup-runtime.outcome == 'failure'
-        run: |
-          echo "::warning::JFrog Runtime (jf-sensors) failed—often due to missing RBAC (ClusterRoles/RoleBindings). Grant the deploy SA the required permissions or install jf-sensors once with elevated credentials."

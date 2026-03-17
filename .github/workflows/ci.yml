@@ -238,6 +238,7 @@ jobs:
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
         run: |
           JF_HOST="${JF_URL#https://}"
+          echo "JF_HOST=${JF_HOST}" >> $GITHUB_ENV
           echo "$JF_ACCESS_TOKEN" | docker login "$JF_HOST" -u "$JF_ARTIFACTORY_USER" --password-stdin
       - name: Build Docker image
         id: build

@@ -1,6 +1,6 @@
 {
   "name": "nba-app",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "main": "server.js",
   "bundledDependencies": true,
   "private": false,
@@ -62,9 +62,8 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
     "zod": "3.25.67",
-    "@vitejs/plugin-rsc": "0.5.3",
     "postgres": "3.4.2",
-    "tar": "6.1.13"
+    "tar": "7.5.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",

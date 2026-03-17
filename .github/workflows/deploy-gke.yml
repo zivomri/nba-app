@@ -6,7 +6,8 @@
 #   GCP_REGION                        - GKE cluster region (e.g. us-central1)
 #   GKE_CLUSTER_NAME                  - GKE cluster name
 #   HELM_NAMESPACE                    - Kubernetes namespace for the Helm release
-#   GCP_WORKLOAD_IDENTITY_PROVIDER    - WIF provider resource name (e.g. projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL/providers/PROVIDER)
+#   GCP_WORKLOAD_IDENTITY_PROVIDER    - WIF provider resource name; must use PROJECT_NUMBER not project ID
+#       (e.g. projects/429932512068/locations/global/workloadIdentityPools/github-actions-pool/providers/jfrog-org)
 #   GCP_SERVICE_ACCOUNT               - GCP service account email (e.g. my-sa@my-project.iam.gserviceaccount.com)
 #   JF_URL                            - JFrog platform URL (e.g. https://your-instance.jfrog.io)
 #   JF_ACCESS_TOKEN                   - JFrog access token (Bearer for AppTrust API; used by JFrog CLI)
@@ -104,12 +105,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Debug: print OIDC claims sent to GCP (only for workflow_dispatch). Remove after fixing WIF.
+      - name: Debug OIDC token claims (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          WIF_AUDIENCE: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+        run: |
+          if [ -z "$WIF_AUDIENCE" ]; then echo "GCP_WORKLOAD_IDENTITY_PROVIDER not set, skipping"; exit 0; fi
+          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            -H "Content-Type: application/json" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL" \
+            -d "{\"audience\":\"$WIF_AUDIENCE\"}" | jq -r '.value')
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then echo "Could not get OIDC token"; exit 0; fi
+          PAYLOAD=$(echo "$TOKEN" | cut -d. -f2)
+          echo "OIDC token claims (for WIF attribute condition):"
+          echo "$PAYLOAD" | tr '_-' '/+' | base64 -d 2>/dev/null | jq . || true
+
       - name: Authenticate to Google Cloud
         id: auth
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          audience: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2

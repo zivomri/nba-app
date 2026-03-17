@@ -283,15 +283,6 @@ jobs:
             --key "$(cat evidence_private_key.pem)" \
             --key-alias "$EVIDENCE_KEY_ALIAS"
           echo '🔎 Docker image Evidence attached: `build-signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
-
-          jf evd create-evidence \
-            --build-name "${BUILD_NAME}" \
-            --build-number "${build_number}" \
-            --project "${PROJECT_KEY}" \
-            --key "$(cat evidence_private_key.pem)" \
-            --key-alias "$EVIDENCE_KEY_ALIAS"
-            --integtaion sonar
-
       - name: Index Build Info in Xray (Docker)
         run: |
           sudo apt-get update && sudo apt-get install -y jq
@@ -493,6 +484,7 @@ jobs:
             --predicate jira.json \
             --markdown jira.md \
             --predicate-type "https://atlassian.com/evidence/jira/release/v1" \
+            --provider-id "jira" \
             --release-bundle "$APPLICATION_KEY" \
             --release-bundle-version "$APP_VERSION" \
             --project "$PROJECT_KEY" \

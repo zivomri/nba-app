@@ -260,7 +260,15 @@ jobs:
             -f Dockerfile.prebuilt next-build
       - name: Scan Docker image with JFrog Xray
         run: |
-          jf docker scan "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}" --project "${PROJECT_KEY}"
+          docker pull "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}"
+          echo "=== docker images ==="
+          docker images
+          IMAGE_REF=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}" | head -1)
+          if [ -z "$IMAGE_REF" ]; then
+            IMAGE_REF="${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}"
+          fi
+          echo "Scanning image: $IMAGE_REF"
+          jf docker scan "$IMAGE_REF" --project "${PROJECT_KEY}"
       - name: Publish Docker build info to JFrog Artifactory
         run: |
           jf rt build-docker-create "/${DOCKER_REPO_NAME}" --image-file=build-metadata \

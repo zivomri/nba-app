@@ -171,7 +171,9 @@ jobs:
       - name: Scan Build Info with JFrog Xray
         run: |
           jf build-scan --format=json "$BUILD_NAME" "$build_number" --project $PROJECT_KEY
-      - name: Generate SonarQube coverage evidence JSON
+      - name: Generate dummy SonarQube evidence files (NPM)
+        run: bash .github/scripts/generate-dummy-sonarqube-evidence.sh
+      - name: Add SonarQube coverage evidence (NPM) 🐸
         env:
           EVIDENCE_PRIVATE_KEY: ${{ secrets.EVIDENCE_PRIVATE_KEY }}
           EVIDENCE_KEY_ALIAS: ${{ secrets.EVIDENCE_KEY_ALIAS }}
@@ -181,52 +183,6 @@ jobs:
           chmod 600 evidence_private_key.pem
           PACKAGE_VERSION=$(jq -r '.version' package.json)
           PACKAGE_NAME=$(jq -r '.name' package.json)
-
-          mkdir -p .jfrog/evidence
-          COVERAGE_PERCENT=87.5
-          NOW_TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          cat > .jfrog/evidence/sonarqube-coverage.json <<EOF
-          {
-            "predicateType": "https://jfrog.com/evidence/sonarqube/v1",
-            "predicate": {
-              "projectStatus": {
-                "status": "ERROR",
-                "ignoredConditions": false,
-                "caycStatus": "non-compliant",
-                "conditions": [
-                  {
-                    "status": "ERROR",
-                    "metricKey": "new_coverage",
-                    "comparator": "LT",
-                    "errorThreshold": "85",
-                    "actualValue": "82.50562381034781"
-                  },
-                  {
-                    "status": "OK",
-                    "metricKey": "skipped_tests",
-                    "comparator": "GT",
-                    "actualValue": "0"
-                  }
-                ],
-                "period": {
-                  "mode": "last_version",
-                  "date": "2000-04-27T00:45:23+0200",
-                  "parameter": "2015-12-07"
-                }
-              }
-            },
-            "createdAt": "2222-01-01T00:00:00.000Z",
-            "createdBy": "SonarQube",
-            "markdown": "# SVG in Markdown example\n\n## Details\n\n- **Type**: svg examples\n\nThis demonstrates the syntax for embedding an SVG without a separate file.\n\n!"
-          }
-          EOF
-
-          cat > .jfrog/evidence/sonarqube-coverage.md <<EOF
-          # SVG in Markdown example\n\n## Details\n\n- **Type**:
-              svg examples\n\nThis demonstrates the syntax for embedding an SVG
-              without a separate file.\n\n!
-          EOF
-
           jf evd create-evidence \
             --predicate .jfrog/evidence/sonarqube-coverage.json \
             --markdown .jfrog/evidence/sonarqube-coverage.md \
@@ -235,7 +191,7 @@ jobs:
             --package-name "$PACKAGE_NAME" \
             --package-version "$PACKAGE_VERSION" \
             --package-repo-name $PROJECT_KEY-npm \
-            --provider-id github-actions \
+            --provider-id sonar \
             --key "$(cat evidence_private_key.pem)" \
             --key-alias "$EVIDENCE_KEY_ALIAS" 
       - name: Print jf evd help
@@ -521,10 +477,9 @@ jobs:
             --predicate-type "https://slsa.dev/provenance/v1" \
             --application-key "$APPLICATION_KEY" \
             --application-version "$APP_VERSION" \
-            --project "$PROJECT_KEY" \
             --key "$(cat evidence_private_key.pem)" \
             --key-alias "$EVIDENCE_KEY_ALIAS" || echo "⚠️ SLSA evidence attach failed"
-
+            --provider-id github
           # Jira predicate and markdown
           # Generate a small set of pseudo tickets and types for the release notes
           T1="BV-$(( (${GITHUB_RUN_NUMBER:-0} % 200) + 100 ))"

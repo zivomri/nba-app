@@ -19,6 +19,19 @@ name: Deploy to GKE (Workload Identity)
 
 on:
   workflow_dispatch:
+    inputs:
+      app_key:
+        description: 'Application key (e.g. nba-app)'
+        required: false
+        default: 'nba-app'
+      stage:
+        description: 'Stage (e.g. PROD)'
+        required: false
+        default: 'PROD'
+      version:
+        description: 'Version (e.g. 1.0.13)'
+        required: false
+        default: '1.0.13'
   repository_dispatch:
     types: [jfrog-apptrust-release]
 
@@ -30,6 +43,21 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Set deploy parameters
+        id: params
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "app_key=${{ github.event.inputs.app_key }}" >> $GITHUB_OUTPUT
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "stage=${{ github.event.inputs.stage }}" >> $GITHUB_OUTPUT
+            echo "Using app_key=${{ github.event.inputs.app_key }} version=${{ github.event.inputs.version }} stage=${{ github.event.inputs.stage }} (workflow_dispatch)"
+          else
+            echo "app_key=${{ github.event.client_payload.app_key }}" >> $GITHUB_OUTPUT
+            echo "version=${{ github.event.client_payload.version }}" >> $GITHUB_OUTPUT
+            echo "stage=${{ github.event.client_payload.stage }}" >> $GITHUB_OUTPUT
+            echo "Using app_key=${{ github.event.client_payload.app_key }} version=${{ github.event.client_payload.version }} (repository_dispatch)"
+          fi
+
       - name: Print repository_dispatch payload
         if: github.event_name == 'repository_dispatch'
         run: |
@@ -40,8 +68,8 @@ jobs:
         if: github.event_name == 'repository_dispatch'
         id: get-version-content
         run: |
-          APP_KEY='${{ github.event.client_payload.app_key }}'
-          VERSION='${{ github.event.client_payload.version }}'
+          APP_KEY='${{ steps.params.outputs.app_key }}'
+          VERSION='${{ steps.params.outputs.version }}'
           RESP=$(curl -sS -H "Authorization: Bearer ${{ secrets.JF_ACCESS_TOKEN }}" \
             "${{ secrets.JF_URL }}/apptrust/api/v1/applications/${APP_KEY}/versions/${VERSION}/content?include=sources")
           BUILD_NUMBER=$(echo "$RESP" | jq -r --arg app "$APP_KEY" '.sources[] | select(.type=="build" and .build.name == ($app + "-ci-docker")) | .build.number' | head -1)
@@ -61,7 +89,7 @@ jobs:
         if: github.event_name == 'repository_dispatch'
         id: get-build-info
         run: |
-          BUILD_NAME='${{ github.event.client_payload.app_key }}-ci-docker'
+          BUILD_NAME='${{ steps.params.outputs.app_key }}-ci-docker'
           BUILD_NUMBER='${{ steps.get-version-content.outputs.build_number }}'
           PROJECT_KEY='${{ steps.get-version-content.outputs.project_key }}'
           jf rt curl "/api/build/${BUILD_NAME}/${BUILD_NUMBER}?project=${PROJECT_KEY}" -s | jq . > build-info.json
@@ -105,6 +133,7 @@ jobs:
         id: image-tag
         run: |
           TAG="${{ steps.get-build-info.outputs.imagetag }}"
+          if [ -z "$TAG" ]; then TAG="${{ steps.params.outputs.version }}"; fi
           if [ -z "$TAG" ]; then TAG=latest; fi
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "Using image tag: $TAG"

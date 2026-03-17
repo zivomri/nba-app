@@ -266,7 +266,7 @@ jobs:
       - name: Publish build to Artifactory (with Docker image)
         run: |
           jf rt build-publish "${BUILD_NAME}" "${build_number}" --project "${PROJECT_KEY}"
-      - name: Sign Docker image evidence 🐸
+      - name: Sign Docker build evidence 🐸
         env:
           EVIDENCE_PRIVATE_KEY: ${{ secrets.EVIDENCE_PRIVATE_KEY }}
           EVIDENCE_KEY_ALIAS: ${{ secrets.EVIDENCE_KEY_ALIAS }}
@@ -283,6 +283,15 @@ jobs:
             --key "$(cat evidence_private_key.pem)" \
             --key-alias "$EVIDENCE_KEY_ALIAS"
           echo '🔎 Docker image Evidence attached: `build-signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
+
+          jf evd create-evidence \
+            --build-name "${BUILD_NAME}" \
+            --build-number "${build_number}" \
+            --project "${PROJECT_KEY}" \
+            --key "$(cat evidence_private_key.pem)" \
+            --key-alias "$EVIDENCE_KEY_ALIAS"
+            --integtaion sonar
+
       - name: Index Build Info in Xray (Docker)
         run: |
           sudo apt-get update && sudo apt-get install -y jq

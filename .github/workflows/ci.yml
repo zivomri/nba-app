@@ -78,6 +78,22 @@ jobs:
             --predicate ./sign_npm.json \
             --predicate-type https://jfrog.com/evidence/signature/v1
           echo '🔎 NPM build Evidence attached: `signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
+      - name: Add Gituhb Evidence NPM 🐸
+        env:
+          EVIDENCE_PRIVATE_KEY: ${{ secrets.EVIDENCE_PRIVATE_KEY }}
+          EVIDENCE_KEY_ALIAS: ${{ secrets.EVIDENCE_KEY_ALIAS }}
+        run: |
+          # jf evd create-evidence \
+          # --package-name my-javascript-build \
+          # --package-version $PACKAGE_VERSION \
+          # --package-repo-name javascript-local \
+          # --key "${{ secrets.CODEQL_SIGNING_KEY }}" \
+          # --key-alias ${{ vars.CODEQL_KEY_ALIAS }} \
+          # --predicate "results-javascript/javascript.sarif" \
+          # --predicate-type "http://github.com/CodeQL/static-analysis" \
+          # --provider-id "github" \
+          # --markdown "results-javascript/javascript-report.md"
+          echo 'will do something later'
       - name: Collect build environment info
         run: |
           jf rt build-collect-env "$BUILD_NAME" "$build_number" --project $PROJECT_KEY
@@ -487,7 +503,6 @@ jobs:
             --provider-id "jira" \
             --application-key "$APPLICATION_KEY" \
             --application-version "$APP_VERSION" \
-            --project "$PROJECT_KEY" \
             --key "$(cat evidence_private_key.pem)" \
             --key-alias "$EVIDENCE_KEY_ALIAS" || echo "⚠️ Jira evidence attach failed"
 

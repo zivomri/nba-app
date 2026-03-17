@@ -368,6 +368,14 @@ jobs:
           sed -i "s/tag: \"\"/tag: \"${IMAGE_TAG}\"/" helm/nba-app/values.yaml
           echo "Set image.tag to ${IMAGE_TAG}"
           grep -A2 '^image:' helm/nba-app/values.yaml
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.13.0'
+      - name: Generate Chart.lock (required by JFrog CLI FlexPack)
+        run: |
+          helm dependency update ./helm/nba-app
+          cat helm/nba-app/Chart.lock || true
       - name: Package Helm chart
         run: |
           jf helm package ./helm/nba-app \

@@ -1,6 +1,20 @@
-# Removing public.pem and private.pem from Git History
+# Removing `.pem` key files from Git History
 
-These files were committed and later deleted. To purge them from **all** history (so no commit ever contains them), you have two options.
+Use this if key material was committed (e.g. `public.pem`, `private.pem`, `public_key.pem`, `private_key.pem`) and later deleted. To purge them from **all** history (so no commit ever contains them), use one of the options below.
+
+**Example — remove `public_key.pem` and `private_key.pem`:**
+
+```bash
+git filter-repo --path public_key.pem --path private_key.pem --invert-paths --force
+```
+
+(`git-filter-repo` removes the `origin` remote; re-add it before pushing.)
+
+**Example — remove `public.pem` and `private.pem`:**
+
+```bash
+git filter-repo --path public.pem --path private.pem --invert-paths --force
+```
 
 ## Option A: git-filter-repo (recommended)
 
@@ -14,10 +28,10 @@ brew install git-filter-repo
 pip3 install git-filter-repo
 ```
 
-**Run** (from repo root):
+**Run** (from repo root) — add every path you need to purge:
 
 ```bash
-git filter-repo --path public.pem --path private.pem --invert-paths --force
+git filter-repo --path public_key.pem --path private_key.pem --invert-paths --force
 ```
 
 - `--invert-paths`: remove these paths from every commit.
@@ -38,7 +52,7 @@ git push --force-with-lease origin main    # overwrite remote history
 
 ```bash
 git filter-branch --force --index-filter \
-  'git rm --cached --ignore-unmatch public.pem private.pem' \
+  'git rm --cached --ignore-unmatch public_key.pem private_key.pem public.pem private.pem' \
   --prune-empty --tag-name-filter cat -- --all
 ```
 

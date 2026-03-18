@@ -414,7 +414,6 @@ jobs:
           echo "Pushing $CHART_TGZ_FILE to oci://${JF_HOST}/${HELM_REPO_NAME}"
           jf helm push "$CHART_TGZ_FILE" "oci://${JF_HOST}/${HELM_REPO_NAME}" --build-name "$BUILD_NAME" --build-number "$build_number"
           jf rt build-collect-env "$BUILD_NAME" "$build_number"
-          jf rt build-add-dependencies "$BUILD_NAME" "$build_number"
           jf rt build-add-git "$BUILD_NAME" "$build_number"
 
       - name: Publish Helm build to Artifactory

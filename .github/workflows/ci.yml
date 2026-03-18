@@ -343,7 +343,7 @@ jobs:
     needs: build-docker
     runs-on: ubuntu-latest
     env:
-      BUILD_NAME: nba-app-ci-docker-helm
+      BUILD_NAME: nba-app-ci-helm
       build_number: ${{ github.run_number }}
       PROJECT_KEY: ${{ vars.PROJECT_KEY }}
       HELM_REPO_NAME: rsa-demo-helm-local

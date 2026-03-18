@@ -2,7 +2,8 @@ apiVersion: v2
 name: nba-app
 description: NBA App - Next.js application
 type: application
-version: 0.1.0
-appVersion: "1.0"
+# version = npm major + 100 (e.g. npm 1.0.18 → 101.0.18); CI overwrites from package.json before pack
+version: 101.0.18
+appVersion: "1.0.18"
 maintainers: []
 dependencies: []

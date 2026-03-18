@@ -272,8 +272,8 @@ jobs:
       - name: Publish Docker build info to JFrog Artifactory
         run: |
           jf rt build-docker-create "/${DOCKER_REPO_NAME}" --image-file=build-metadata \
-            --build-name="${BUILD_NAME}" \
-            --build-number="${build_number}" \
+            --build-name "${BUILD_NAME}" \
+            --build-number "${build_number}" \
             --project="${PROJECT_KEY}"
       - name: Publish build to Artifactory (with Docker image)
         run: |
@@ -379,8 +379,9 @@ jobs:
       - name: Package Helm chart
         run: |
           jf helm package ./helm/nba-app \
-            --build-name="$BUILD_NAME" \
-            --build-number="$build_number"
+            --build-name "$BUILD_NAME" \
+            --build-number "$build_number"
+            --project "$PROJECT_KEY"
       - name: Login to JFrog Artifactory (Helm OCI)
         env:
           JF_URL: ${{ secrets.JF_URL }}
@@ -396,8 +397,9 @@ jobs:
           CHART_TGZ_FILE="nba-app-${CHART_VERSION}.tgz"
           echo "Pushing $CHART_TGZ_FILE to oci://${JF_HOST}/${HELM_REPO_NAME}"
           jf helm push "$CHART_TGZ_FILE" "oci://${JF_HOST}/${HELM_REPO_NAME}" \
-            --build-name="$BUILD_NAME" \
-            --build-number="$build_number"
+            --build-name "$BUILD_NAME" \
+            --build-number "$build_number"
+            --project "$PROJECT_KEY"
       - name: Publish Helm build to Artifactory
         run: |
           jf rt build-publish "$BUILD_NAME" "$build_number" --project "$PROJECT_KEY"

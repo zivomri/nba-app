@@ -408,10 +408,9 @@ jobs:
           CHART_VERSION=$(grep '^version:' helm/nba-app/Chart.yaml | awk '{print $2}')
           CHART_TGZ_FILE="nba-app-${CHART_VERSION}.tgz"
           echo "Pushing $CHART_TGZ_FILE to oci://${JF_HOST}/${HELM_REPO_NAME}"
-          jf helm push "$CHART_TGZ_FILE" "oci://${JF_HOST}/${HELM_REPO_NAME}" \
+          solenglatest.jfrog.io/rsa-demo-docker/ "$CHART_TGZ_FILE" "oci://${JF_HOST}/${HELM_REPO_NAME}" \
             --build-name "$BUILD_NAME" \
             --build-number "$build_number"
-            --project "$PROJECT_KEY"
       - name: Publish Helm build to Artifactory
         run: |
           jf rt build-publish "$BUILD_NAME" "$build_number" --project "$PROJECT_KEY"

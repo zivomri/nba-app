@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20-alpine AS base
+FROM solenglatest.jfrog.io/rsa-demo-docker/node:20-alpine AS base
 
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
@@ -7,14 +7,14 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 
-FROM base AS builder
+FROM solenglatest.jfrog.io/rsa-demo-docker/base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
 # Production stage
-FROM base AS runner
+FROM solenglatest.jfrog.io/rsa-demo-docker/base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

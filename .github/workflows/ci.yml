@@ -47,6 +47,9 @@ jobs:
         run: |
           jf npm install --build-name "$BUILD_NAME" --build-number "$build_number" --project $PROJECT_KEY
       - name: Build Next.js app
+        env:
+          NEXT_PUBLIC_APP_VERSION: ${{ env.NPM_PACKAGE_BUILD_VERSION }}
+          NEXT_PUBLIC_BUILD_NUMBER: ${{ env.build_number }}
         run: npm run build
       - name: Upload Next.js build artifacts
         uses: actions/upload-artifact@v4
@@ -258,6 +261,7 @@ jobs:
             --label author="${{ github.actor }}" \
             -t "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}" \
             -f Dockerfile.prebuilt next-build
+
       - name: Scan Docker image with JFrog Xray
         run: |
           docker pull "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}"
@@ -408,7 +412,10 @@ jobs:
           CHART_VERSION=$(grep '^version:' helm/nba-app/Chart.yaml | awk '{print $2}')
           CHART_TGZ_FILE="nba-app-${CHART_VERSION}.tgz"
           echo "Pushing $CHART_TGZ_FILE to oci://${JF_HOST}/${HELM_REPO_NAME}"
-          helm push "$CHART_TGZ_FILE" "oci://${JF_HOST}/${HELM_REPO_NAME}"
+          jf helm push "$CHART_TGZ_FILE" "oci://${JF_HOST}/${HELM_REPO_NAME}"  \           
+            --build-name "$BUILD_NAME" \
+            --build-number "$build_number"
+
       - name: Publish Helm build to Artifactory
         run: |
           jf rt build-publish "$BUILD_NAME" "$build_number" --project "$PROJECT_KEY"

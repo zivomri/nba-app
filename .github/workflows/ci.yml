@@ -230,10 +230,6 @@ jobs:
           NPM_PACKAGE_BUILD_VERSION=$(jq -r '.version' package.json)
           echo "NPM_PACKAGE_BUILD_VERSION=$NPM_PACKAGE_BUILD_VERSION" >> $GITHUB_ENV
           echo "IMAGE_TAG=${NPM_PACKAGE_BUILD_VERSION}-b${build_number}" >> $GITHUB_ENV
-      - name: Enable Buildx
-        run: |
-          docker buildx create --name mybuilder --driver docker-container --use
-          docker buildx inspect --bootstrap
       - name: Login to JFrog Artifactory (Docker)
         env:
           JF_URL: ${{ secrets.JF_URL }}

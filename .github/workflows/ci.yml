@@ -249,29 +249,18 @@ jobs:
           JF_URL: ${{ secrets.JF_URL }}
         run: |
           JF_HOST="${JF_URL#https://}"
-          CACHE_REF="${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:buildcache"
-          docker buildx build --provenance=false --push \
-            --cache-from type=registry,ref="${CACHE_REF}" \
-            --cache-to type=registry,ref="${CACHE_REF}",mode=max \
-            --metadata-file=build-metadata \
-            --platform linux/arm64,linux/amd64 \
+          jf docker build . -f Dockerfile.prebuilt next-build \
             --label build.number="${build_number}" \
             --label build.name="${BUILD_NAME}" \
             --label project.name="${PROJECT_KEY}" \
             --label author="${{ github.actor }}" \
-            -t "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}" \
-            -f Dockerfile.prebuilt next-build
+            -t "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}" > build-metadata
       - name: Scan Docker image with JFrog Xray
         run: |
-          docker pull "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}"
-          echo "=== docker images ==="
-          docker images
-          IMAGE_REF=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}" | head -1)
-          if [ -z "$IMAGE_REF" ]; then
-            IMAGE_REF="${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}"
-          fi
-          echo "Scanning image: $IMAGE_REF"
-          jf docker scan "$IMAGE_REF" --project "${PROJECT_KEY}"
+          jf docker scan "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}" --project "${PROJECT_KEY}"
+      - name: Push Docker image to JFrog Artifactory
+        run: |
+          jf docker push "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}"
       - name: Publish Docker build info to JFrog Artifactory
         run: |
           jf rt build-docker-create "/${DOCKER_REPO_NAME}" --image-file=build-metadata \

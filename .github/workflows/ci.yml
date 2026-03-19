@@ -253,13 +253,17 @@ jobs:
             --label project.name="${PROJECT_KEY}" \
             --label author="${{ github.actor }}" \
             -t "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}" \
-            next-build > build-metadata
+            next-build
       - name: Scan Docker image with JFrog Xray
         run: |
           jf docker scan "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}" --project "${PROJECT_KEY}"
       - name: Push Docker image to JFrog Artifactory
         run: |
-          jf docker push "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}"
+          IMAGE_REF="${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}"
+          jf docker push "$IMAGE_REF"
+          # jf rt build-docker-create expects one line: image-tag@sha256:<digest>
+          MANIFEST_DIGEST=$(docker buildx imagetools inspect --format '{{json .Manifest}}' "$IMAGE_REF" | jq -r '.digest')
+          echo "${IMAGE_REF}@${MANIFEST_DIGEST}" > build-metadata
       - name: Publish Docker build info to JFrog Artifactory
         run: |
           jf rt build-docker-create "/${DOCKER_REPO_NAME}" --image-file=build-metadata \

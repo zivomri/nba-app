@@ -275,7 +275,7 @@ jobs:
           docker buildx imagetools inspect "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${MAIN_IMAGE_TAG}"
 
           # Create build-metadata for jf rt build-docker-create (multi-arch manifest digest)
-          MANIFEST_DIGEST=$(docker buildx imagetools inspect --format '{{.Digest}}' "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${MAIN_IMAGE_TAG}")
+          MANIFEST_DIGEST=$(docker buildx imagetools inspect --format '{{json .Manifest}}' "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${MAIN_IMAGE_TAG}" | jq -r '.digest')
           echo "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${MAIN_IMAGE_TAG}@${MANIFEST_DIGEST}" > build-metadata
       - name: Scan Docker image with JFrog Xray
         run: |

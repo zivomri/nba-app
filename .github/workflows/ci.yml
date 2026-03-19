@@ -249,34 +249,18 @@ jobs:
           JF_URL: ${{ secrets.JF_URL }}
         run: |
           JF_HOST="${JF_URL#https://}"
-
-          MAIN_IMAGE_TAG="${NPM_PACKAGE_BUILD_VERSION}-b${build_number}"
-          AMD_IMAGE_TAG="${MAIN_IMAGE_TAG}-amd64"
-          ARM_IMAGE_TAG="${MAIN_IMAGE_TAG}-arm64"
-
-          for ARCH in amd64 arm64; do
-            IMAGE_TAG="${MAIN_IMAGE_TAG}-${ARCH}"
-            docker buildx build --provenance=false --push \
-              --platform "linux/${ARCH}" \
-              --metadata-file="build-metadata-${ARCH}" \
-              --label build.number="${build_number}" \
-              --label build.name="${BUILD_NAME}" \
-              --label project.name="${PROJECT_KEY}" \
-              --label author="${{ github.actor }}" \
-              -t "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${IMAGE_TAG}" \
-              -f Dockerfile.prebuilt next-build
-          done
-
-          docker buildx imagetools create \
-            -t "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${MAIN_IMAGE_TAG}" \
-            "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${AMD_IMAGE_TAG}" \
-            "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${ARM_IMAGE_TAG}"
-
-          docker buildx imagetools inspect "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${MAIN_IMAGE_TAG}"
-
-          # Create build-metadata for jf rt build-docker-create (multi-arch manifest digest)
-          MANIFEST_DIGEST=$(docker buildx imagetools inspect --format '{{json .Manifest}}' "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${MAIN_IMAGE_TAG}" | jq -r '.digest')
-          echo "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${MAIN_IMAGE_TAG}@${MANIFEST_DIGEST}" > build-metadata
+          CACHE_REF="${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:buildcache"
+          docker buildx build --provenance=false --push \
+            --cache-from type=registry,ref="${CACHE_REF}" \
+            --cache-to type=registry,ref="${CACHE_REF}",mode=max \
+            --metadata-file=build-metadata \
+            --platform linux/arm64,linux/amd64 \
+            --label build.number="${build_number}" \
+            --label build.name="${BUILD_NAME}" \
+            --label project.name="${PROJECT_KEY}" \
+            --label author="${{ github.actor }}" \
+            -t "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}" \
+            -f Dockerfile.prebuilt next-build
       - name: Scan Docker image with JFrog Xray
         run: |
           docker pull "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}"

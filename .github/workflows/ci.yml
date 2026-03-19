@@ -245,12 +245,15 @@ jobs:
           JF_URL: ${{ secrets.JF_URL }}
         run: |
           JF_HOST="${JF_URL#https://}"
-          jf docker build . -f Dockerfile.prebuilt next-build \
+          # Single build context (next-build); -f is repo-root Dockerfile.prebuilt; flags must precede context (docker/buildx requirement)
+          jf docker build \
+            -f Dockerfile.prebuilt \
             --label build.number="${build_number}" \
             --label build.name="${BUILD_NAME}" \
             --label project.name="${PROJECT_KEY}" \
             --label author="${{ github.actor }}" \
-            -t "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}" > build-metadata
+            -t "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}" \
+            next-build > build-metadata
       - name: Scan Docker image with JFrog Xray
         run: |
           jf docker scan "${JF_HOST}/${DOCKER_REPO_NAME}/nba-app:${NPM_PACKAGE_BUILD_VERSION}-b${build_number}" --project "${PROJECT_KEY}"

@@ -321,7 +321,7 @@ jobs:
           EVIDENCE_PRIVATE_KEY: ${{ secrets.EVIDENCE_PRIVATE_KEY }}
           EVIDENCE_KEY_ALIAS: ${{ secrets.EVIDENCE_KEY_ALIAS }}
         run: |
-          printf '%s\n' "$EVIDENCE_PRIVATE_KEY" > evidence_private_key.pem
+          printf '%s\n' "$EVIDENCE_PRIVATE_KEY" > evidence_private_key.pem 
           chmod 600 evidence_private_key.pem
           IMAGE_NAME="nba-app"
           TAG_NAME="${IMAGE_TAG}"
